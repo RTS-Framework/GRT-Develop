@@ -49,9 +49,9 @@ func TestSet(t *testing.T) {
 		require.Equal(t, opts, o)
 	})
 
-	t.Run("invalid runtime shellcode template", func(t *testing.T) {
+	t.Run("invalid runtime template", func(t *testing.T) {
 		output, err := Set(nil, nil)
-		require.EqualError(t, err, "invalid runtime shellcode template")
+		require.EqualError(t, err, "invalid runtime template")
 		require.Nil(t, output)
 	})
 
@@ -83,21 +83,21 @@ func TestGet(t *testing.T) {
 		require.Equal(t, opts, o)
 	})
 
-	t.Run("invalid runtime shellcode", func(t *testing.T) {
+	t.Run("invalid instance", func(t *testing.T) {
 		opts, err := Get(nil, 0)
-		require.EqualError(t, err, "invalid runtime shellcode")
+		require.EqualError(t, err, "invalid runtime instance")
 		require.Nil(t, opts)
 	})
 
-	t.Run("invalid offset to the option stub", func(t *testing.T) {
+	t.Run("invalid offset", func(t *testing.T) {
 		tpl := make([]byte, StubSize+256)
 
 		opts, err := Get(tpl, len(tpl))
-		require.EqualError(t, err, "invalid offset to the option stub")
+		require.EqualError(t, err, "invalid offset of the runtime option stub")
 		require.Nil(t, opts)
 	})
 
-	t.Run("invalid runtime option stub", func(t *testing.T) {
+	t.Run("invalid option stub", func(t *testing.T) {
 		tpl := make([]byte, StubSize+256)
 
 		opts, err := Get(tpl, len(tpl)-StubSize)

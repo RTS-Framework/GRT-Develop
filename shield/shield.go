@@ -2,6 +2,8 @@ package shield
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 )
@@ -12,24 +14,74 @@ import (
 // | 4 byte  |   uint16    |   var  |   uint16   |  var  |
 // +---------+-------------+--------+------------+-------+
 
-// MaxStubSize is the maximum supported size about shield and decoy.
-// Reference the shield stub at the tail of Gleam-RT.
-const MaxStubSize = 8 * 1024
+const (
+	// StubMagic is the mark of shield stub.
+	StubMagic = 0xFB
 
-// Set is used to encrypt shield and write to runtime shield stub.
+	// StubSize is the shield stub total size at the runtime tail.
+	StubSize = 8 * 1024
+)
+
+const keySize = 4
+
+// Set is used to encrypt shield and decoy, then write to runtime shield stub.
 func Set(tpl, shield, decoy []byte) ([]byte, error) {
-	if len(shield)+len(decoy)+(4+2+2) > MaxStubSize {
+	// check runtime template is valid
+	if len(tpl) < StubSize {
+		return nil, errors.New("invalid runtime template")
+	}
+	if keySize+2+len(shield)+2+len(decoy) > StubSize {
 		return nil, errors.New("shield or decoy is too large")
 	}
-
+	// copy template
 	output := make([]byte, len(tpl))
 	copy(output, tpl)
+	// generate random key
+	key := make([]byte, keySize)
+	_, err := rand.Read(key)
+	if err != nil {
+		return nil, errors.New("failed to generate key")
+	}
+	// encrypt shield and decoy
+	encryptedShield := encrypt(shield, key)
+	encryptedDecoy := encrypt(decoy, key)
+
+	stub := make([]byte, totalSize)
+	offset := 0
+	// write key (4 bytes)
+	copy(stub[offset:], key)
+	offset += cryptoKeySize
+	// write shield size (uint16)
+	binary.LittleEndian.PutUint16(stub[offset:], uint16(len(encryptedShield))) // #nosec G115
+	offset += 2
+	// write shield data (var)
+	copy(stub[offset:], encryptedShield)
+	offset += len(encryptedShield)
+	// write decoy size (uint16)
+	binary.LittleEndian.PutUint16(stub[offset:], uint16(len(encryptedDecoy))) // #nosec G115
+	offset += 2
+	// write decoy data (var)
+	copy(stub[offset:], encryptedDecoy)
+	// append stub to output
+	output = append(output, stub...)
 	return output, nil
 }
 
-// Get is used to extra shield from tje runtime shield stub.
+// Get is used to extract shield and decoy from the runtime shield stub.
 func Get(instance []byte, offset int) ([]byte, []byte, error) {
-	return nil, nil, nil
+
+}
+
+func xor(data, key []byte) []byte {
+	if len(data) == 0 {
+		return nil
+	}
+	output := make([]byte, len(data))
+	keyLen := len(key)
+	for i := 0; i < len(data); i++ {
+		output[i] = data[i] ^ key[i%keyLen]
+	}
+	return output
 }
 
 // // aligned to the memory page size

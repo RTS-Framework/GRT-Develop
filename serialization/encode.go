@@ -148,7 +148,7 @@ func encodeArray(array reflect.Value) ([]byte, error) {
 func encodeSlice(slice reflect.Value) ([]byte, error) {
 	n := slice.Len()
 	t := slice.Type().Elem()
-	output := make([]byte, 0, n*int(t.Size()))
+	output := make([]byte, 0, n*int(t.Size())) // #nosec G115
 	for i := 0; i < n; i++ {
 		v, err := encodeElement(slice.Index(i))
 		if err != nil {

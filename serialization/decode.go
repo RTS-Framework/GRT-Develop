@@ -71,7 +71,7 @@ func Unmarshal(data []byte, v any) error {
 //gocyclo:ignore
 func decodeValue(reader *bytes.Reader, value reflect.Value, size uint32) error {
 	typ := value.Type()
-	if uint32(typ.Size()) != size {
+	if uint32(typ.Size()) != size { // #nosec G115
 		return fmt.Errorf("invalid size: %d", size)
 	}
 	buf := make([]byte, size)
@@ -140,7 +140,7 @@ func decodePointer(reader *bytes.Reader, field reflect.Value, size uint32) error
 		field.SetString(s)
 	case reflect.Array:
 		t := field.Type().Elem()
-		s := uint32(t.Size())
+		s := uint32(t.Size()) // #nosec G115
 		if size%s != 0 {
 			return fmt.Errorf("invalid array element type: %s", t.Name())
 		}
@@ -157,7 +157,7 @@ func decodePointer(reader *bytes.Reader, field reflect.Value, size uint32) error
 		field.Set(array)
 	case reflect.Slice:
 		t := field.Type().Elem()
-		s := uint32(t.Size())
+		s := uint32(t.Size()) // #nosec G115
 		if size%s != 0 {
 			return fmt.Errorf("invalid slice element type: %s", t.Name())
 		}

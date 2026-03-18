@@ -89,10 +89,10 @@ func encryptStub(stub []byte) {
 	keyIdx := last % cryptoKeySize
 	for i := 0; i < len(data); i++ {
 		b := data[i]
-		b ^= byte(last)
+		b ^= byte(last)           // #nosec G115
 		b = rol(b, uint8(last%8)) // #nosec G115
 		b ^= key[keyIdx]
-		b += byte(ctr ^ last)
+		b += byte(ctr ^ last)     // #nosec G115
 		b = ror(b, uint8(last%8)) // #nosec G115
 		data[i] = b
 		// update key index
@@ -150,10 +150,10 @@ func decryptStub(stub []byte) {
 	for i := 0; i < len(data); i++ {
 		b := data[i]
 		b = rol(b, uint8(last%8)) // #nosec G115
-		b -= byte(ctr ^ last)
+		b -= byte(ctr ^ last)     // #nosec G115
 		b ^= key[keyIdx]
 		b = ror(b, uint8(last%8)) // #nosec G115
-		b ^= byte(last)
+		b ^= byte(last)           // #nosec G115
 		data[i] = b
 		// update key index
 		keyIdx++

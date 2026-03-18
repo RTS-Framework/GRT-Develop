@@ -57,11 +57,11 @@ type Options struct {
 	TrackCurrentThread bool `toml:"track_current_thread" json:"track_current_thread"`
 }
 
-// Set is used to adjust options in the runtime shellcode template.
+// Set is used to adjust options in the runtime template.
 func Set(tpl []byte, opts *Options) ([]byte, error) {
-	// check shellcode runtime template is valid
+	// check runtime template is valid
 	if len(tpl) < StubSize {
-		return nil, errors.New("invalid runtime shellcode template")
+		return nil, errors.New("invalid runtime template")
 	}
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
@@ -121,20 +121,20 @@ func Set(tpl []byte, opts *Options) ([]byte, error) {
 	return output, nil
 }
 
-// Get is used to read options from the runtime shellcode option stub.
-func Get(sc []byte, offset int) (*Options, error) {
-	if len(sc) < StubSize {
-		return nil, errors.New("invalid runtime shellcode")
+// Get is used to read options from the runtime option stub.
+func Get(instance []byte, offset int) (*Options, error) {
+	if len(instance) < StubSize {
+		return nil, errors.New("invalid runtime instance")
 	}
-	if offset < 0 || len(sc)-offset < StubSize {
-		return nil, errors.New("invalid offset to the option stub")
+	if offset < 0 || len(instance)-offset < StubSize {
+		return nil, errors.New("invalid offset of the runtime option stub")
 	}
-	if sc[offset] != StubMagic {
+	if instance[offset] != StubMagic {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// read option from stub
 	opts := Options{}
-	stub := sc[offset:]
+	stub := instance[offset:]
 	if stub[OptOffsetEnableSecurityMode] != 0 {
 		opts.EnableSecurityMode = true
 	}

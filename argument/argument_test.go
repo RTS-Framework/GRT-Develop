@@ -35,6 +35,20 @@ func TestEncode(t *testing.T) {
 		require.Len(t, stub, expected)
 	})
 
+	t.Run("id is already exists", func(t *testing.T) {
+		arg0 := &Arg{
+			ID:   0,
+			Data: []byte{0x12, 0x34, 0x56, 0x78},
+		}
+		arg1 := &Arg{
+			ID:   0,
+			Data: bytes.Repeat([]byte("hello runtime"), 10),
+		}
+		stub, err := Encode(arg0, arg1)
+		require.EqualError(t, err, "argument id 0 is already exists")
+		require.Nil(t, stub)
+	})
+
 	t.Run("failed to generate crypto key", func(t *testing.T) {
 		patch := func(b []byte) (int, error) {
 			return 0, errors.New("monkey error")
@@ -47,21 +61,7 @@ func TestEncode(t *testing.T) {
 			Data: []byte{0x12, 0x34, 0x56, 0x78},
 		}
 		stub, err := Encode(arg0)
-		require.Error(t, err)
-		require.Nil(t, stub)
-	})
-
-	t.Run("id is already exists", func(t *testing.T) {
-		arg0 := &Arg{
-			ID:   0,
-			Data: []byte{0x12, 0x34, 0x56, 0x78},
-		}
-		arg1 := &Arg{
-			ID:   0,
-			Data: bytes.Repeat([]byte("hello runtime"), 10),
-		}
-		stub, err := Encode(arg0, arg1)
-		require.EqualError(t, err, "argument id 0 is already exists")
+		require.EqualError(t, err, "failed to generate crypto key")
 		require.Nil(t, stub)
 	})
 }

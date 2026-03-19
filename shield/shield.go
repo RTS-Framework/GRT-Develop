@@ -10,7 +10,7 @@ import (
 // +------------+---------+-------------+--------+------------+-------+
 // | magic mark | xor key | shield size | shield | decoy size | decoy |
 // +------------+---------+-------------+--------+------------+-------+
-// |    0xFB    | 4 byte  |   uint16    |   var  |   uint16   |  var  |
+// |    0xFB    | 32 byte |   uint16    |   var  |   uint16   |  var  |
 // +------------+---------+-------------+--------+------------+-------+
 
 const (
@@ -21,11 +21,11 @@ const (
 	StubSize = 8 * 1024
 )
 
-const xorKeySize = 4
+const xorKeySize = 32
 
 // Set is used to encrypt shield and decoy, then write to runtime shield stub.
-func Set(tpl, shield, decoy []byte) ([]byte, error) {
-	if len(tpl) < StubSize {
+func Set(template, shield, decoy []byte) ([]byte, error) {
+	if len(template) < StubSize {
 		return nil, errors.New("invalid runtime template")
 	}
 	if 1+xorKeySize+2+len(shield)+2+len(decoy) > StubSize {
@@ -34,13 +34,13 @@ func Set(tpl, shield, decoy []byte) ([]byte, error) {
 	// locate shield stub in runtime template
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
-	offset := bytes.Index(tpl, stub)
+	offset := bytes.Index(template, stub)
 	if offset == -1 {
 		return nil, errors.New("invalid runtime shield stub")
 	}
 	// copy template
-	output := make([]byte, len(tpl))
-	copy(output, tpl)
+	output := make([]byte, len(template))
+	copy(output, template)
 	// generate xor key
 	key := make([]byte, xorKeySize)
 	_, err := rand.Read(key)
@@ -74,8 +74,49 @@ func Set(tpl, shield, decoy []byte) ([]byte, error) {
 }
 
 // Get is used to extract shield and decoy from the runtime shield stub.
+// The offset is the position of the shield stub in the instance.
 func Get(instance []byte, offset int) ([]byte, []byte, error) {
-	return nil, nil, nil
+	if len(instance) < StubSize {
+		return nil, nil, errors.New("invalid runtime instance")
+	}
+	if offset < 0 || len(instance)-offset < StubSize {
+		return nil, nil, errors.New("invalid offset of the runtime shield stub")
+	}
+	if instance[offset] != StubMagic {
+		return nil, nil, errors.New("invalid runtime shield stub")
+	}
+	stub := instance[offset:]
+	// skip magic
+	off := 1
+	// read xor key
+	key := make([]byte, xorKeySize)
+	copy(key, stub[off:off+xorKeySize])
+	off += xorKeySize
+	// read shield size (uint16)
+	shieldSize := int(binary.LittleEndian.Uint16(stub[off:]))
+	off += 2
+	// check if we have enough data
+	if off+shieldSize+2 > StubSize {
+		return nil, nil, errors.New("invalid shield size in stub")
+	}
+	// read encrypted shield
+	shield := make([]byte, shieldSize)
+	copy(shield, stub[off:off+shieldSize])
+	off += shieldSize
+	// read decoy size (uint16)
+	decoySize := int(binary.LittleEndian.Uint16(stub[off:]))
+	off += 2
+	// check if we have enough data
+	if off+decoySize > StubSize {
+		return nil, nil, errors.New("invalid decoy size in stub")
+	}
+	// read encrypted decoy
+	decoy := make([]byte, decoySize)
+	copy(decoy, stub[off:off+decoySize])
+	// decrypt shield and decoy
+	shield = xor(shield, key)
+	decoy = xor(decoy, key)
+	return shield, decoy, nil
 }
 
 func xor(data, key []byte) []byte {

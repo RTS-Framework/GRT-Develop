@@ -53,14 +53,14 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	copy(stub[off:], key)
 	off += xorKeySize
 	// write shield size
-	size := binary.LittleEndian.AppendUint16(nil, uint16(len(shield)))
+	size := binary.LittleEndian.AppendUint16(nil, uint16(len(shield))) // #nosec G115
 	copy(stub[off:], size)
 	off += 2
 	// write encrypted shield
 	copy(stub[off:], xor(shield, key))
 	off += len(shield)
 	// write decoy size
-	size = binary.LittleEndian.AppendUint16(nil, uint16(len(decoy)))
+	size = binary.LittleEndian.AppendUint16(nil, uint16(len(decoy))) // #nosec G115
 	copy(stub[off:], size)
 	off += 2
 	// write encrypted decoy

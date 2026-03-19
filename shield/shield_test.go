@@ -37,6 +37,42 @@ func TestSet(t *testing.T) {
 		spew.Dump(output)
 	})
 
+	t.Run("empty shield and decoy", func(t *testing.T) {
+		output, err := Set(template, nil, nil)
+		require.NoError(t, err)
+
+		s, d, err := Get(output, offset)
+		require.NoError(t, err)
+		require.Empty(t, s)
+		require.Empty(t, d)
+
+		spew.Dump(output)
+	})
+
+	t.Run("empty shield", func(t *testing.T) {
+		decoy := []byte("test decoy instruction")
+
+		output, err := Set(template, nil, decoy)
+		require.NoError(t, err)
+
+		s, d, err := Get(output, offset)
+		require.NoError(t, err)
+		require.Empty(t, s)
+		require.Equal(t, decoy, d)
+	})
+
+	t.Run("empty decoy", func(t *testing.T) {
+		shield := []byte("test shield instruction")
+
+		output, err := Set(template, shield, nil)
+		require.NoError(t, err)
+
+		s, d, err := Get(output, offset)
+		require.NoError(t, err)
+		require.Equal(t, shield, s)
+		require.Empty(t, d)
+	})
+
 	t.Run("invalid template", func(t *testing.T) {
 		output, err := Set(nil, nil, nil)
 		require.EqualError(t, err, "invalid runtime template")

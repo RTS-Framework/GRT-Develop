@@ -13,11 +13,11 @@ import (
 // +------------+---------+---------+-----------+
 
 const (
-	// StubSize is the option stub total size at the runtime tail.
-	StubSize = 64
-
 	// StubMagic is the mark of options stub.
 	StubMagic = 0xFC
+
+	// StubSize is the option stub total size at the runtime tail.
+	StubSize = 64
 )
 
 // options offset of the option stub.
@@ -58,22 +58,22 @@ type Options struct {
 }
 
 // Set is used to adjust options in the runtime template.
-func Set(tpl []byte, opts *Options) ([]byte, error) {
+func Set(template []byte, opts *Options) ([]byte, error) {
 	// check runtime template is valid
-	if len(tpl) < StubSize {
+	if len(template) < StubSize {
 		return nil, errors.New("invalid runtime template")
 	}
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
-	if !bytes.Equal(tpl[len(tpl)-StubSize:], stub) {
+	if !bytes.Equal(template[len(template)-StubSize:], stub) {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// write options to stub
 	if opts == nil {
 		opts = new(Options)
 	}
-	output := make([]byte, len(tpl))
-	copy(output, tpl)
+	output := make([]byte, len(template))
+	copy(output, template)
 	stub = output[len(output)-StubSize:]
 	var opt byte
 	if opts.EnableSecurityMode {
@@ -122,6 +122,7 @@ func Set(tpl []byte, opts *Options) ([]byte, error) {
 }
 
 // Get is used to read options from the runtime option stub.
+// The offset is the position of the option stub in the instance.
 func Get(instance []byte, offset int) (*Options, error) {
 	if len(instance) < StubSize {
 		return nil, errors.New("invalid runtime instance")

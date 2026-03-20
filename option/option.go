@@ -2,15 +2,16 @@ package option
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"flag"
 )
 
-// +------------+---------+---------+-----------+
-// | magic mark | option1 | option2 | option... |
-// +------------+---------+---------+-----------+
-// |    0xFC    |   var   |   var   |    var    |
-// +------------+---------+---------+-----------+
+// +------------+---------+---------+---------+
+// | magic mark | option1 | option2 | optionN |
+// +------------+---------+---------+---------+
+// |    0xFC    |   var   |   var   |   var   |
+// +------------+---------+---------+---------+
 
 const (
 	// StubMagic is the mark of options stub.
@@ -22,17 +23,33 @@ const (
 
 // options offset of the option stub.
 const (
-	OptOffsetEnableSecurityMode = iota + 1
-	OptOffsetDisableDetector
-	OptOffsetDisableWatchdog
-	OptOffsetDisableSysmon
-	OptOffsetNotEraseInstruction
-	OptOffsetNotAdjustProtect
-	OptOffsetTrackCurrentThread
+	OptOffsetModulePinningHash   = 1
+	OptOffsetShieldModuleHash    = 9
+	OptOffsetShieldEntryPoint    = 17
+	OptOffsetEnableSecurityMode  = 25
+	OptOffsetDisableDetector     = 26
+	OptOffsetDisableWatchdog     = 27
+	OptOffsetDisableSysmon       = 28
+	OptOffsetNotEraseInstruction = 29
+	OptOffsetNotAdjustProtect    = 30
+	OptOffsetTrackCurrentThread  = 31
 )
+
+const paddingOffset = OptOffsetTrackCurrentThread + 1
 
 // Options contains options about Gleam-RT.
 type Options struct {
+	// runtime will not initialize when the exe name is not expected,
+	// if zero, runtime will skip this detection.
+	ModulePinningHash uint64 `toml:"module_pinning_hash" json:"module_pinning_hash"`
+
+	// the module hash of the pre-injected shield, if 0x01, the module is the main exe.
+	// if zero, runtime will deploy a shield from the runtime shield stub.
+	ShieldModuleHash uint64 `toml:"shield_module_hash" json:"shield_module_hash"`
+
+	// the RVA of the pre-injected shield in the module.
+	ShieldEntryPoint uint64 `toml:"shield_entry_point" json:"shield_entry_point"`
+
 	// detect environment when initialize runtime, if not safe, stop at once.
 	EnableSecurityMode bool `toml:"enable_security_mode" json:"enable_security_mode"`
 
@@ -74,6 +91,9 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
 	}
+	binary.LittleEndian.PutUint64(stub[OptOffsetModulePinningHash:], opts.ModulePinningHash)
+	binary.LittleEndian.PutUint64(stub[OptOffsetShieldModuleHash:], opts.ShieldModuleHash)
+	binary.LittleEndian.PutUint64(stub[OptOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
 	stub[OptOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
 	stub[OptOffsetDisableDetector] = boolToByte(opts.DisableDetector)
 	stub[OptOffsetDisableWatchdog] = boolToByte(opts.DisableWatchdog)
@@ -103,6 +123,9 @@ func Get(instance []byte, offset int) (*Options, error) {
 	// read option from stub
 	stub := instance[offset:]
 	opts := Options{
+		ModulePinningHash:   binary.LittleEndian.Uint64(stub[OptOffsetModulePinningHash:]),
+		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[OptOffsetShieldModuleHash:]),
+		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[OptOffsetShieldEntryPoint:]),
 		EnableSecurityMode:  stub[OptOffsetEnableSecurityMode] != 0,
 		DisableDetector:     stub[OptOffsetDisableDetector] != 0,
 		DisableWatchdog:     stub[OptOffsetDisableWatchdog] != 0,

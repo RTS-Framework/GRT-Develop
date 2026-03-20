@@ -74,49 +74,13 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
 	}
-	var opt byte
-	if opts.EnableSecurityMode {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetEnableSecurityMode] = opt
-	if opts.DisableDetector {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetDisableDetector] = opt
-	if opts.DisableSysmon {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetDisableWatchdog] = opt
-	if opts.NotEraseInstruction {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetDisableSysmon] = opt
-	if opts.DisableWatchdog {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetNotEraseInstruction] = opt
-	if opts.NotAdjustProtect {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetNotAdjustProtect] = opt
-	if opts.TrackCurrentThread {
-		opt = 1
-	} else {
-		opt = 0
-	}
-	stub[OptOffsetTrackCurrentThread] = opt
+	stub[OptOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
+	stub[OptOffsetDisableDetector] = boolToByte(opts.DisableDetector)
+	stub[OptOffsetDisableWatchdog] = boolToByte(opts.DisableWatchdog)
+	stub[OptOffsetDisableSysmon] = boolToByte(opts.DisableSysmon)
+	stub[OptOffsetNotEraseInstruction] = boolToByte(opts.NotEraseInstruction)
+	stub[OptOffsetNotAdjustProtect] = boolToByte(opts.NotAdjustProtect)
+	stub[OptOffsetTrackCurrentThread] = boolToByte(opts.TrackCurrentThread)
 	// copy template and set stub
 	output := make([]byte, len(template))
 	copy(output, template)
@@ -137,30 +101,24 @@ func Get(instance []byte, offset int) (*Options, error) {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// read option from stub
-	opts := Options{}
 	stub := instance[offset:]
-	if stub[OptOffsetEnableSecurityMode] != 0 {
-		opts.EnableSecurityMode = true
-	}
-	if stub[OptOffsetDisableDetector] != 0 {
-		opts.DisableDetector = true
-	}
-	if stub[OptOffsetDisableWatchdog] != 0 {
-		opts.DisableWatchdog = true
-	}
-	if stub[OptOffsetDisableSysmon] != 0 {
-		opts.DisableSysmon = true
-	}
-	if stub[OptOffsetNotEraseInstruction] != 0 {
-		opts.NotEraseInstruction = true
-	}
-	if stub[OptOffsetNotAdjustProtect] != 0 {
-		opts.NotAdjustProtect = true
-	}
-	if stub[OptOffsetTrackCurrentThread] != 0 {
-		opts.TrackCurrentThread = true
+	opts := Options{
+		EnableSecurityMode:  stub[OptOffsetEnableSecurityMode] != 0,
+		DisableDetector:     stub[OptOffsetDisableDetector] != 0,
+		DisableWatchdog:     stub[OptOffsetDisableWatchdog] != 0,
+		DisableSysmon:       stub[OptOffsetDisableSysmon] != 0,
+		NotEraseInstruction: stub[OptOffsetNotEraseInstruction] != 0,
+		NotAdjustProtect:    stub[OptOffsetNotAdjustProtect] != 0,
+		TrackCurrentThread:  stub[OptOffsetTrackCurrentThread] != 0,
 	}
 	return &opts, nil
+}
+
+func boolToByte(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // Flag is used to read options from command line.

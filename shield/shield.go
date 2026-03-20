@@ -38,9 +38,6 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	if offset == -1 {
 		return nil, errors.New("invalid runtime shield stub")
 	}
-	// copy template
-	output := make([]byte, len(template))
-	copy(output, template)
 	// generate xor key
 	key := make([]byte, xorKeySize)
 	_, err := rand.Read(key)
@@ -73,7 +70,9 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 		return nil, errors.New("failed to generate padding data")
 	}
 	copy(stub[off:], pad)
-	// set stub data
+	// copy template and set stub
+	output := make([]byte, len(template))
+	copy(output, template)
 	copy(output[offset:], stub)
 	return output, nil
 }

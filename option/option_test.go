@@ -62,7 +62,7 @@ func TestSet(t *testing.T) {
 		require.Nil(t, output)
 	})
 
-	t.Run("invalid  stub", func(t *testing.T) {
+	t.Run("invalid stub", func(t *testing.T) {
 		tpl := make([]byte, StubSize+offset)
 
 		output, err := Set(tpl, nil)
@@ -104,7 +104,7 @@ func TestGet(t *testing.T) {
 		require.Nil(t, opts)
 	})
 
-	t.Run("invalid option stub", func(t *testing.T) {
+	t.Run("invalid stub", func(t *testing.T) {
 		tpl := make([]byte, StubSize+offset)
 
 		opts, err := Get(tpl, len(tpl)-StubSize)

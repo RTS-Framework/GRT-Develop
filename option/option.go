@@ -17,7 +17,7 @@ const (
 	StubMagic = 0xFC
 
 	// StubSize is the option stub total size at the runtime tail.
-	StubSize = 64
+	StubSize = 128
 )
 
 // options offset of the option stub.
@@ -63,18 +63,17 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if len(template) < StubSize {
 		return nil, errors.New("invalid runtime template")
 	}
+	// locate shield stub in runtime template
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
-	if !bytes.Equal(template[len(template)-StubSize:], stub) {
+	offset := bytes.Index(template, stub)
+	if offset == -1 {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// write options to stub
 	if opts == nil {
 		opts = new(Options)
 	}
-	output := make([]byte, len(template))
-	copy(output, template)
-	stub = output[len(output)-StubSize:]
 	var opt byte
 	if opts.EnableSecurityMode {
 		opt = 1
@@ -118,6 +117,10 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 		opt = 0
 	}
 	stub[OptOffsetTrackCurrentThread] = opt
+	// copy template and set stub
+	output := make([]byte, len(template))
+	copy(output, template)
+	copy(output[offset:], stub)
 	return output, nil
 }
 

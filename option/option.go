@@ -2,6 +2,7 @@ package option
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"flag"
@@ -35,7 +36,10 @@ const (
 	OptOffsetTrackCurrentThread  = 31
 )
 
-const paddingOffset = OptOffsetTrackCurrentThread + 1
+const (
+	paddingOff  = OptOffsetTrackCurrentThread + 1
+	paddingSize = StubSize - paddingOff
+)
 
 // Options contains options about Gleam-RT.
 type Options struct {
@@ -101,6 +105,13 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	stub[OptOffsetNotEraseInstruction] = boolToByte(opts.NotEraseInstruction)
 	stub[OptOffsetNotAdjustProtect] = boolToByte(opts.NotAdjustProtect)
 	stub[OptOffsetTrackCurrentThread] = boolToByte(opts.TrackCurrentThread)
+	// append padding data
+	pad := make([]byte, paddingSize)
+	_, err := rand.Read(pad)
+	if err != nil {
+		return nil, errors.New("failed to generate padding data")
+	}
+	copy(stub[paddingOff:], pad)
 	// copy template and set stub
 	output := make([]byte, len(template))
 	copy(output, template)

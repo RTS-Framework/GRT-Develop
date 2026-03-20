@@ -4,13 +4,18 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
-var template []byte
+var (
+	template []byte
+	offset   int
+)
 
 func init() {
-	inst := bytes.Repeat([]byte{0xFF}, 256)
+	offset = 256
+	inst := bytes.Repeat([]byte{0xFF}, offset)
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
 	template = append(inst, stub...)
@@ -29,13 +34,13 @@ func TestSet(t *testing.T) {
 		}
 		output, err := Set(template, opts)
 		require.NoError(t, err)
-		o, err := Get(output, 256)
+		o, err := Get(output, offset)
 		require.NoError(t, err)
 		require.Equal(t, opts, o)
 
 		output, err = Set(template, nil)
 		require.NoError(t, err)
-		o, err = Get(output, 256)
+		o, err = Get(output, offset)
 		require.NoError(t, err)
 		opts = &Options{
 			EnableSecurityMode:  false,
@@ -47,16 +52,18 @@ func TestSet(t *testing.T) {
 			TrackCurrentThread:  false,
 		}
 		require.Equal(t, opts, o)
+
+		spew.Dump(output)
 	})
 
-	t.Run("invalid runtime template", func(t *testing.T) {
+	t.Run("invalid template", func(t *testing.T) {
 		output, err := Set(nil, nil)
 		require.EqualError(t, err, "invalid runtime template")
 		require.Nil(t, output)
 	})
 
-	t.Run("invalid runtime option stub", func(t *testing.T) {
-		tpl := make([]byte, StubSize+256)
+	t.Run("invalid  stub", func(t *testing.T) {
+		tpl := make([]byte, StubSize+offset)
 
 		output, err := Set(tpl, nil)
 		require.EqualError(t, err, "invalid runtime option stub")
@@ -78,7 +85,7 @@ func TestGet(t *testing.T) {
 		output, err := Set(template, opts)
 		require.NoError(t, err)
 
-		o, err := Get(output, 256)
+		o, err := Get(output, offset)
 		require.NoError(t, err)
 		require.Equal(t, opts, o)
 	})
@@ -90,7 +97,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("invalid offset", func(t *testing.T) {
-		tpl := make([]byte, StubSize+256)
+		tpl := make([]byte, StubSize+offset)
 
 		opts, err := Get(tpl, len(tpl))
 		require.EqualError(t, err, "invalid offset of the runtime option stub")
@@ -98,7 +105,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("invalid option stub", func(t *testing.T) {
-		tpl := make([]byte, StubSize+256)
+		tpl := make([]byte, StubSize+offset)
 
 		opts, err := Get(tpl, len(tpl)-StubSize)
 		require.EqualError(t, err, "invalid runtime option stub")

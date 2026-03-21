@@ -8,11 +8,11 @@ import (
 	"flag"
 )
 
-// +------------+---------+---------+---------+
-// | magic mark | option1 | option2 | optionN |
-// +------------+---------+---------+---------+
-// |    0xFC    |   var   |   var   |   var   |
-// +------------+---------+---------+---------+
+// +------------+---------+---------+---------+---------+
+// | magic mark | xor key | option1 | option2 | optionN |
+// +------------+---------+---------+---------+---------+
+// |    0xFC    | 32 byte |   var   |   var   |   var   |
+// +------------+---------+---------+---------+---------+
 
 const (
 	// StubMagic is the mark of options stub.
@@ -43,12 +43,15 @@ const (
 
 // Options contains options about Gleam-RT.
 type Options struct {
-	// runtime will not initialize when the exe name is not expected,
+	// runtime will not initialize when the exe name
+	// is not expected or the target dll is not loaded.
 	// if zero, runtime will skip this detection.
 	ModulePinningHash uint64 `toml:"module_pinning_hash" json:"module_pinning_hash"`
 
-	// the module hash of the pre-injected shield, if 0x01, the module is the main exe.
-	// if zero, runtime will deploy a shield from the runtime shield stub.
+	// the module hash of the pre-injected shield in,
+	// if 0x0000, runtime will deploy a shield from the built-in shield stub.
+	// if 0x0001, the module is the main exe.
+	// if others, the module is the target dll.
 	ShieldModuleHash uint64 `toml:"shield_module_hash" json:"shield_module_hash"`
 
 	// the RVA of the pre-injected shield in the module.
@@ -157,6 +160,18 @@ func boolToByte(b bool) byte {
 
 // Flag is used to read options from command line.
 func Flag(opts *Options) {
+	flag.Uint64Var(
+		&opts.ModulePinningHash, "grt-mph", 0,
+		"set the module hash about module pinning",
+	)
+	flag.Uint64Var(
+		&opts.ShieldModuleHash, "grt-smh", 0,
+		"set the module hash about pre-injected shield",
+	)
+	flag.Uint64Var(
+		&opts.ShieldEntryPoint, "grt-sep", 0,
+		"set the rva about the shield in module",
+	)
 	flag.BoolVar(
 		&opts.EnableSecurityMode, "grt-esm", false,
 		"Gleam-RT: detect environment when initialize runtime",

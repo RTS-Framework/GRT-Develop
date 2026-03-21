@@ -17,6 +17,7 @@ import (
 const (
 	cryptoKeySize  = 32
 	offsetNumArgs  = 32
+	offsetArgsSize = 32 + 4
 	offsetChecksum = 32 + 4 + 4
 	offsetFirstArg = 32 + 4 + 4 + 4
 )
@@ -128,15 +129,20 @@ func Decode(stub []byte) ([]*Arg, error) {
 	// decode arguments
 	args := make([]*Arg, 0, numArgs)
 	offset := uint32(offsetFirstArg)
+	rem := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
 	for i := 0; i < int(numArgs); i++ {
 		id := binary.LittleEndian.Uint32(stub[offset:])
 		offset += 4
 		size := binary.LittleEndian.Uint32(stub[offset:])
 		offset += 4
+		if offset+size > uint32(len(stub)) || size > rem-(4+4) {
+			return nil, errors.New("invalid argument size")
+		}
 		data := make([]byte, size)
 		copy(data, stub[offset:offset+size])
 		args = append(args, &Arg{ID: id, Data: data})
 		offset += size
+		rem -= 4 + 4 + size
 	}
 	return args, nil
 }

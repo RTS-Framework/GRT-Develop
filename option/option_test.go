@@ -2,8 +2,11 @@ package option
 
 import (
 	"bytes"
+	"crypto/rand"
+	"errors"
 	"testing"
 
+	"github.com/For-ACGN/monkey"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
@@ -73,6 +76,34 @@ func TestSet(t *testing.T) {
 
 		output, err := Set(tpl, nil)
 		require.EqualError(t, err, "invalid runtime option stub")
+		require.Nil(t, output)
+	})
+
+	t.Run("failed to generate xor key", func(t *testing.T) {
+		patch := func(b []byte) (int, error) {
+			return 0, errors.New("monkey error")
+		}
+		pg := monkey.Patch(rand.Read, patch)
+		defer pg.Unpatch()
+
+		output, err := Set(template, nil)
+		require.EqualError(t, err, "failed to generate key")
+		require.Nil(t, output)
+	})
+
+	t.Run("failed to generate padding data", func(t *testing.T) {
+		patch := func(b []byte) (int, error) {
+			if len(b) == xorKeySize {
+				b[0] = 0xFE
+				return len(b), nil
+			}
+			return 0, errors.New("monkey error")
+		}
+		pg := monkey.Patch(rand.Read, patch)
+		defer pg.Unpatch()
+
+		output, err := Set(template, nil)
+		require.EqualError(t, err, "failed to generate padding data")
 		require.Nil(t, output)
 	})
 }

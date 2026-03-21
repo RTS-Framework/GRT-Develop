@@ -24,20 +24,22 @@ const (
 
 // options offset of the option stub.
 const (
-	OptOffsetExePinningHash      = 1
-	OptOffsetShieldModuleHash    = 9
-	OptOffsetShieldEntryPoint    = 17
-	OptOffsetEnableSecurityMode  = 25
-	OptOffsetDisableDetector     = 26
-	OptOffsetDisableWatchdog     = 27
-	OptOffsetDisableSysmon       = 28
-	OptOffsetNotEraseInstruction = 29
-	OptOffsetNotAdjustProtect    = 30
-	OptOffsetTrackCurrentThread  = 31
+	optOffset                    = 1 + xorKeySize
+	optOffsetExePinningHash      = optOffset + 0
+	optOffsetShieldModuleHash    = optOffset + 8
+	optOffsetShieldEntryPoint    = optOffset + 16
+	optOffsetEnableSecurityMode  = optOffset + 24
+	optOffsetDisableDetector     = optOffset + 25
+	optOffsetDisableWatchdog     = optOffset + 26
+	optOffsetDisableSysmon       = optOffset + 27
+	optOffsetNotEraseInstruction = optOffset + 28
+	optOffsetNotAdjustProtect    = optOffset + 29
+	optOffsetTrackCurrentThread  = optOffset + 30
 )
 
 const (
-	paddingOff  = OptOffsetTrackCurrentThread + 1
+	xorKeySize  = 32
+	paddingOff  = optOffsetTrackCurrentThread + 1
 	paddingSize = StubSize - paddingOff
 )
 
@@ -93,23 +95,32 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if offset == -1 {
 		return nil, errors.New("invalid runtime option stub")
 	}
+	// generate xor key
+	key := make([]byte, xorKeySize)
+	_, err := rand.Read(key)
+	if err != nil {
+		return nil, errors.New("failed to generate key")
+	}
+	copy(stub[1:], key)
 	// write options to stub
 	if opts == nil {
 		opts = new(Options)
 	}
-	binary.LittleEndian.PutUint64(stub[OptOffsetExePinningHash:], opts.ExePinningHash)
-	binary.LittleEndian.PutUint64(stub[OptOffsetShieldModuleHash:], opts.ShieldModuleHash)
-	binary.LittleEndian.PutUint64(stub[OptOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
-	stub[OptOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
-	stub[OptOffsetDisableDetector] = boolToByte(opts.DisableDetector)
-	stub[OptOffsetDisableWatchdog] = boolToByte(opts.DisableWatchdog)
-	stub[OptOffsetDisableSysmon] = boolToByte(opts.DisableSysmon)
-	stub[OptOffsetNotEraseInstruction] = boolToByte(opts.NotEraseInstruction)
-	stub[OptOffsetNotAdjustProtect] = boolToByte(opts.NotAdjustProtect)
-	stub[OptOffsetTrackCurrentThread] = boolToByte(opts.TrackCurrentThread)
+	binary.LittleEndian.PutUint64(stub[optOffsetExePinningHash:], opts.ExePinningHash)
+	binary.LittleEndian.PutUint64(stub[optOffsetShieldModuleHash:], opts.ShieldModuleHash)
+	binary.LittleEndian.PutUint64(stub[optOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
+	stub[optOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
+	stub[optOffsetDisableDetector] = boolToByte(opts.DisableDetector)
+	stub[optOffsetDisableWatchdog] = boolToByte(opts.DisableWatchdog)
+	stub[optOffsetDisableSysmon] = boolToByte(opts.DisableSysmon)
+	stub[optOffsetNotEraseInstruction] = boolToByte(opts.NotEraseInstruction)
+	stub[optOffsetNotAdjustProtect] = boolToByte(opts.NotAdjustProtect)
+	stub[optOffsetTrackCurrentThread] = boolToByte(opts.TrackCurrentThread)
+	// encrypt options
+	xor(stub[optOffset:paddingOff], key)
 	// append padding data
 	pad := make([]byte, paddingSize)
-	_, err := rand.Read(pad)
+	_, err = rand.Read(pad)
 	if err != nil {
 		return nil, errors.New("failed to generate padding data")
 	}
@@ -134,18 +145,23 @@ func Get(instance []byte, offset int) (*Options, error) {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// read option from stub
-	stub := instance[offset:]
+	stub := make([]byte, StubSize)
+	copy(stub, instance[offset:offset+StubSize])
+	// decrypt option
+	key := stub[1 : 1+xorKeySize]
+	xor(stub[optOffset:paddingOff], key)
+	// build options
 	opts := Options{
-		ExePinningHash:      binary.LittleEndian.Uint64(stub[OptOffsetExePinningHash:]),
-		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[OptOffsetShieldModuleHash:]),
-		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[OptOffsetShieldEntryPoint:]),
-		EnableSecurityMode:  stub[OptOffsetEnableSecurityMode] != 0,
-		DisableDetector:     stub[OptOffsetDisableDetector] != 0,
-		DisableWatchdog:     stub[OptOffsetDisableWatchdog] != 0,
-		DisableSysmon:       stub[OptOffsetDisableSysmon] != 0,
-		NotEraseInstruction: stub[OptOffsetNotEraseInstruction] != 0,
-		NotAdjustProtect:    stub[OptOffsetNotAdjustProtect] != 0,
-		TrackCurrentThread:  stub[OptOffsetTrackCurrentThread] != 0,
+		ExePinningHash:      binary.LittleEndian.Uint64(stub[optOffsetExePinningHash:]),
+		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[optOffsetShieldModuleHash:]),
+		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[optOffsetShieldEntryPoint:]),
+		EnableSecurityMode:  stub[optOffsetEnableSecurityMode] != 0,
+		DisableDetector:     stub[optOffsetDisableDetector] != 0,
+		DisableWatchdog:     stub[optOffsetDisableWatchdog] != 0,
+		DisableSysmon:       stub[optOffsetDisableSysmon] != 0,
+		NotEraseInstruction: stub[optOffsetNotEraseInstruction] != 0,
+		NotAdjustProtect:    stub[optOffsetNotAdjustProtect] != 0,
+		TrackCurrentThread:  stub[optOffsetTrackCurrentThread] != 0,
 	}
 	return &opts, nil
 }
@@ -155,6 +171,13 @@ func boolToByte(b bool) byte {
 		return 1
 	}
 	return 0
+}
+
+func xor(data, key []byte) {
+	keyLen := len(key)
+	for i := 0; i < len(data); i++ {
+		data[i] = data[i] ^ key[i%keyLen]
+	}
 }
 
 // Flag is used to read options from command line.

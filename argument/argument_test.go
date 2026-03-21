@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"testing"
 
@@ -89,12 +90,6 @@ func TestDecode(t *testing.T) {
 		require.Equal(t, args, output)
 	})
 
-	t.Run("short stub", func(t *testing.T) {
-		stub, err := Decode(nil)
-		require.EqualError(t, err, "invalid argument stub")
-		require.Nil(t, stub)
-	})
-
 	t.Run("no argument", func(t *testing.T) {
 		stub, err := Encode()
 		require.NoError(t, err)
@@ -102,6 +97,12 @@ func TestDecode(t *testing.T) {
 		output, err := Decode(stub)
 		require.NoError(t, err)
 		require.Empty(t, output)
+	})
+
+	t.Run("invalid stub", func(t *testing.T) {
+		stub, err := Decode(nil)
+		require.EqualError(t, err, "invalid argument stub")
+		require.Nil(t, stub)
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
@@ -125,6 +126,22 @@ func TestDecode(t *testing.T) {
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid argument stub checksum")
+		require.Nil(t, output)
+	})
+
+	t.Run("invalid argument size", func(t *testing.T) {
+		arg := &Arg{
+			ID:   0,
+			Data: []byte{0x12, 0x34, 0x56, 0x78},
+		}
+		stub, err := Encode(arg)
+		require.NoError(t, err)
+
+		// corrupt the argument size to be too large
+		binary.LittleEndian.PutUint32(stub[offsetFirstArg+4:], 0xFFFFFFFF)
+
+		output, err := Decode(stub)
+		require.EqualError(t, err, "invalid argument size")
 		require.Nil(t, output)
 	})
 }

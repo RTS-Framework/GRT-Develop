@@ -138,9 +138,20 @@ func TestDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		// corrupt the argument size to be too large
+		decryptStub(stub)
 		binary.LittleEndian.PutUint32(stub[offsetFirstArg+4:], 0xFFFFFFFF)
+		encryptStub(stub)
 
 		output, err := Decode(stub)
+		require.EqualError(t, err, "invalid argument size")
+		require.Nil(t, output)
+
+		// corrupt the argument size to be larger than stub
+		decryptStub(stub)
+		binary.LittleEndian.PutUint32(stub[offsetFirstArg+4:], uint32(len(arg.Data)+1))
+		encryptStub(stub)
+
+		output, err = Decode(stub)
 		require.EqualError(t, err, "invalid argument size")
 		require.Nil(t, output)
 	})

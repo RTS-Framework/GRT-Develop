@@ -24,7 +24,7 @@ const (
 
 // options offset of the option stub.
 const (
-	OptOffsetModulePinningHash   = 1
+	OptOffsetExePinningHash      = 1
 	OptOffsetShieldModuleHash    = 9
 	OptOffsetShieldEntryPoint    = 17
 	OptOffsetEnableSecurityMode  = 25
@@ -43,10 +43,9 @@ const (
 
 // Options contains options about Gleam-RT.
 type Options struct {
-	// runtime will not initialize when the exe name
-	// is not expected or the target dll is not loaded.
+	// runtime will not initialize when the exe name is not expected.
 	// if zero, runtime will skip this detection.
-	ModulePinningHash uint64 `toml:"module_pinning_hash" json:"module_pinning_hash"`
+	ExePinningHash uint64 `toml:"exe_pinning_hash" json:"exe_pinning_hash"`
 
 	// the module hash of the pre-injected shield in,
 	// if 0x0000, runtime will deploy a shield from the built-in shield stub.
@@ -98,7 +97,7 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
 	}
-	binary.LittleEndian.PutUint64(stub[OptOffsetModulePinningHash:], opts.ModulePinningHash)
+	binary.LittleEndian.PutUint64(stub[OptOffsetExePinningHash:], opts.ExePinningHash)
 	binary.LittleEndian.PutUint64(stub[OptOffsetShieldModuleHash:], opts.ShieldModuleHash)
 	binary.LittleEndian.PutUint64(stub[OptOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
 	stub[OptOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
@@ -137,7 +136,7 @@ func Get(instance []byte, offset int) (*Options, error) {
 	// read option from stub
 	stub := instance[offset:]
 	opts := Options{
-		ModulePinningHash:   binary.LittleEndian.Uint64(stub[OptOffsetModulePinningHash:]),
+		ExePinningHash:      binary.LittleEndian.Uint64(stub[OptOffsetExePinningHash:]),
 		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[OptOffsetShieldModuleHash:]),
 		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[OptOffsetShieldEntryPoint:]),
 		EnableSecurityMode:  stub[OptOffsetEnableSecurityMode] != 0,
@@ -161,8 +160,8 @@ func boolToByte(b bool) byte {
 // Flag is used to read options from command line.
 func Flag(opts *Options) {
 	flag.Uint64Var(
-		&opts.ModulePinningHash, "grt-mph", 0,
-		"set the module hash about module pinning",
+		&opts.ExePinningHash, "grt-mph", 0,
+		"set the hash about exe pinning",
 	)
 	flag.Uint64Var(
 		&opts.ShieldModuleHash, "grt-smh", 0,

@@ -195,13 +195,12 @@ func TestGet(t *testing.T) {
 		output, err := Set(template, shield, decoy)
 		require.NoError(t, err)
 
-		// corrupt shield size to be too large
-		corrupted := make([]byte, len(output))
-		copy(corrupted, output)
-		corrupted[offset+1+xorKeySize] = 0xFF
-		corrupted[offset+1+xorKeySize+1] = 0xFF
+		// set shield size to be too large
+		off := offset + 1 + xorKeySize
+		output[off+0] = 0xFF
+		output[off+1] = 0xFF
 
-		s, d, err := Get(corrupted, offset)
+		s, d, err := Get(output, offset)
 		require.EqualError(t, err, "invalid shield size in stub")
 		require.Nil(t, s)
 		require.Nil(t, d)
@@ -214,13 +213,12 @@ func TestGet(t *testing.T) {
 		output, err := Set(template, shield, decoy)
 		require.NoError(t, err)
 
-		corrupted := make([]byte, len(output))
-		copy(corrupted, output)
-		decoySizeOffset := offset + 1 + xorKeySize + 2 + len(shield)
-		corrupted[decoySizeOffset] = 0xFF
-		corrupted[decoySizeOffset+1] = 0xFF
+		// set decoy size to be too large
+		off := offset + 1 + xorKeySize + 2 + len(shield)
+		output[off+0] = 0xFF
+		output[off+1] = 0xFF
 
-		s, d, err := Get(corrupted, offset)
+		s, d, err := Get(output, offset)
 		require.EqualError(t, err, "invalid decoy size in stub")
 		require.Nil(t, s)
 		require.Nil(t, d)

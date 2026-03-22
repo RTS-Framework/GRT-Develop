@@ -18,14 +18,14 @@ import (
 // ·0000000 data length
 
 const (
-	headerMagic = 0xFFFFFFFF
-	itemEnd     = 0x00000000
+	magic   = 0xACFFFFEE
+	itemEnd = 0x00000000
 
-	flagValue   = 0x00000000
-	flagPointer = 0x80000000
-
-	maskFlag   = 0x80000000
+	maskType   = 0x80000000
 	maskLength = 0x7FFFFFFF
+
+	typeValue   = 0x00000000
+	typePointer = 0x80000000
 )
 
 func stringToUTF16(s string) []byte {

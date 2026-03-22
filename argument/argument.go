@@ -82,6 +82,48 @@ func Encode(args ...*Arg) ([]byte, error) {
 	return output, nil
 }
 
+// Decode is used to decrypt and decode arguments from raw stub.
+func Decode(stub []byte) ([]*Arg, error) {
+	if len(stub) < offsetFirstArg {
+		return nil, errors.New("invalid argument stub")
+	}
+	// calculate checksum
+	var checksum uint32
+	for _, b := range stub[:offsetChecksum] {
+		checksum += checksum << 1
+		checksum += uint32(b)
+	}
+	expected := binary.LittleEndian.Uint32(stub[offsetChecksum:])
+	if checksum != expected {
+		return nil, errors.New("invalid argument stub checksum")
+	}
+	numArgs := binary.LittleEndian.Uint32(stub[offsetNumArgs:])
+	if numArgs == 0 {
+		return nil, nil
+	}
+	stub = bytes.Clone(stub)
+	decryptStub(stub)
+	// decode arguments
+	args := make([]*Arg, 0, numArgs)
+	offset := uint32(offsetFirstArg)
+	rem := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
+	for i := 0; i < int(numArgs); i++ {
+		id := binary.LittleEndian.Uint32(stub[offset:])
+		offset += 4
+		size := binary.LittleEndian.Uint32(stub[offset:])
+		offset += 4
+		if offset+size > uint32(len(stub)) || size > rem-(4+4) { // #nosec G115
+			return nil, errors.New("invalid argument size")
+		}
+		data := make([]byte, size)
+		copy(data, stub[offset:offset+size])
+		args = append(args, &Arg{ID: id, Data: data})
+		offset += size
+		rem -= 4 + 4 + size
+	}
+	return args, nil
+}
+
 func encryptStub(stub []byte) {
 	data := stub[offsetFirstArg:]
 	key := stub[:cryptoKeySize]
@@ -104,47 +146,6 @@ func encryptStub(stub []byte) {
 		ctr++
 		last = xorShift32(last)
 	}
-}
-
-// Decode is used to decrypt and decode arguments from raw stub.
-func Decode(stub []byte) ([]*Arg, error) {
-	if len(stub) < offsetFirstArg {
-		return nil, errors.New("invalid argument stub")
-	}
-	// calculate checksum
-	var checksum uint32
-	for _, b := range stub[:offsetChecksum] {
-		checksum += checksum << 1
-		checksum += uint32(b)
-	}
-	expected := binary.LittleEndian.Uint32(stub[offsetChecksum:])
-	if checksum != expected {
-		return nil, errors.New("invalid argument stub checksum")
-	}
-	numArgs := binary.LittleEndian.Uint32(stub[offsetNumArgs:])
-	if numArgs == 0 {
-		return nil, nil
-	}
-	decryptStub(stub)
-	// decode arguments
-	args := make([]*Arg, 0, numArgs)
-	offset := uint32(offsetFirstArg)
-	rem := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
-	for i := 0; i < int(numArgs); i++ {
-		id := binary.LittleEndian.Uint32(stub[offset:])
-		offset += 4
-		size := binary.LittleEndian.Uint32(stub[offset:])
-		offset += 4
-		if offset+size > uint32(len(stub)) || size > rem-(4+4) {
-			return nil, errors.New("invalid argument size")
-		}
-		data := make([]byte, size)
-		copy(data, stub[offset:offset+size])
-		args = append(args, &Arg{ID: id, Data: data})
-		offset += size
-		rem -= 4 + 4 + size
-	}
-	return args, nil
 }
 
 func decryptStub(stub []byte) {

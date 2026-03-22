@@ -126,8 +126,7 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	}
 	copy(stub[paddingOff:], pad)
 	// copy template and set stub
-	output := make([]byte, len(template))
-	copy(output, template)
+	output := bytes.Clone(template)
 	copy(output[offset:], stub)
 	return output, nil
 }
@@ -145,8 +144,7 @@ func Get(instance []byte, offset int) (*Options, error) {
 		return nil, errors.New("invalid runtime option stub")
 	}
 	// read option from stub
-	stub := make([]byte, StubSize)
-	copy(stub, instance[offset:offset+StubSize])
+	stub := bytes.Clone(instance[offset : offset+StubSize])
 	// decrypt option
 	key := stub[1 : 1+xorKeySize]
 	xor(stub[optOffset:paddingOff], key)

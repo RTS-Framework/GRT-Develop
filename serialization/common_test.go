@@ -2,6 +2,8 @@ package serialization
 
 //nolint:unused
 type testStruct struct {
+	unexported1 int
+
 	Arg1 uint32
 	Arg2 [2]uint32
 	Arg3 []byte
@@ -23,6 +25,8 @@ type testStruct struct {
 	Arg18 float32
 	Arg19 float64
 	Arg20 bool
+
+	unexported2 int
 
 	Arg21 [2]int8
 	Arg22 [2]int16
@@ -48,5 +52,5 @@ type testStruct struct {
 	Arg41 []float64
 	Arg42 []bool
 
-	unexported int
+	unexported3 int
 }

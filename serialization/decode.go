@@ -43,13 +43,17 @@ func Unmarshal(data []byte, v any) error {
 		descriptors = append(descriptors, desc)
 	}
 	// process the structure value
+	var idx int
 	num := value.NumField()
 	for i := 0; i < num; i++ {
 		if !value.Type().Field(i).IsExported() {
 			continue
 		}
+		if idx >= len(descriptors) {
+			return errors.New("invalid structure field")
+		}
 		field := value.Field(i)
-		desc := descriptors[i]
+		desc := descriptors[idx]
 		flag := desc & maskFlag
 		size := desc & maskLength
 		switch flag {
@@ -64,6 +68,7 @@ func Unmarshal(data []byte, v any) error {
 				return fmt.Errorf("failed to decode pointer: %s", err)
 			}
 		}
+		idx++
 	}
 	return nil
 }

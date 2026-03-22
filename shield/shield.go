@@ -71,8 +71,7 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	}
 	copy(stub[off:], pad)
 	// copy template and set stub
-	output := make([]byte, len(template))
-	copy(output, template)
+	output := bytes.Clone(template)
 	copy(output[offset:], stub)
 	return output, nil
 }
@@ -93,8 +92,7 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	// skip magic
 	off := 1
 	// read xor key
-	key := make([]byte, xorKeySize)
-	copy(key, stub[off:off+xorKeySize])
+	key := stub[off : off+xorKeySize]
 	off += xorKeySize
 	// read shield size
 	shieldSize := int(binary.LittleEndian.Uint16(stub[off:]))
@@ -104,8 +102,7 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 		return nil, nil, errors.New("invalid shield size in stub")
 	}
 	// read encrypted shield
-	shield = make([]byte, shieldSize)
-	copy(shield, stub[off:off+shieldSize])
+	shield = stub[off : off+shieldSize]
 	off += shieldSize
 	// read decoy size
 	decoySize := int(binary.LittleEndian.Uint16(stub[off:]))
@@ -115,8 +112,7 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 		return nil, nil, errors.New("invalid decoy size in stub")
 	}
 	// read encrypted decoy
-	decoy = make([]byte, decoySize)
-	copy(decoy, stub[off:off+decoySize])
+	decoy = stub[off : off+decoySize]
 	// decrypt shield and decoy
 	return xor(shield, key), xor(decoy, key), nil
 }
@@ -126,9 +122,8 @@ func xor(data, key []byte) []byte {
 		return nil
 	}
 	output := make([]byte, len(data))
-	keyLen := len(key)
 	for i := 0; i < len(data); i++ {
-		output[i] = data[i] ^ key[i%keyLen]
+		output[i] = data[i] ^ key[i%len(key)]
 	}
 	return output
 }

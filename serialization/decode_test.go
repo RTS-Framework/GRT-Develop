@@ -10,6 +10,8 @@ import (
 func TestUnmarshal(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		s1 := testStruct{
+			unexported1: 1,
+
 			Arg1: 123,
 			Arg2: [2]uint32{456, 789},
 			Arg3: nil,
@@ -32,12 +34,14 @@ func TestUnmarshal(t *testing.T) {
 			Arg19: 0.123459664,
 			Arg20: true,
 
+			unexported2: 1,
+
 			Arg26: [2]uint16{0x1234, 0x5678},
 			Arg37: []uint16{0x5678, 0x1234},
 
 			Arg42: []bool{true, false},
 
-			unexported: 123,
+			unexported3: 2,
 		}
 		data, err := Marshal(&s1)
 		require.NoError(t, err)
@@ -46,7 +50,9 @@ func TestUnmarshal(t *testing.T) {
 		err = Unmarshal(data, &s2)
 		require.NoError(t, err)
 
-		s1.unexported = 0
+		s1.unexported1 = 0
+		s1.unexported2 = 0
+		s1.unexported3 = 0
 		require.Equal(t, s1, s2)
 	})
 

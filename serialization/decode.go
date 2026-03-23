@@ -23,8 +23,7 @@ func Unmarshal(data []byte, v any) error {
 	if len(data) < 4 {
 		return errors.New("invalid data length")
 	}
-	magic := binary.LittleEndian.Uint32(data)
-	if magic != headerMagic {
+	if binary.LittleEndian.Uint32(data) != magic {
 		return errors.New("invalid magic number")
 	}
 	// parse descriptors and check the number of the structure fields
@@ -54,15 +53,15 @@ func Unmarshal(data []byte, v any) error {
 		}
 		field := value.Field(i)
 		desc := descriptors[idx]
-		flag := desc & maskFlag
+		flag := desc & maskType
 		size := desc & maskLength
 		switch flag {
-		case flagValue:
+		case typeValue:
 			err := decodeValue(reader, field, size)
 			if err != nil {
 				return fmt.Errorf("failed to decode value: %s", err)
 			}
-		case flagPointer:
+		case typePointer:
 			err := decodePointer(reader, field, size)
 			if err != nil {
 				return fmt.Errorf("failed to decode pointer: %s", err)

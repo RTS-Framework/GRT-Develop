@@ -41,7 +41,7 @@ func Marshal(v any) ([]byte, error) {
 	// write magic number
 	var buffer []byte
 	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, headerMagic)
+	binary.LittleEndian.PutUint32(buf, magic)
 	buffer = append(buffer, buf...)
 	// write descriptors
 	for _, desc := range descriptors {
@@ -62,70 +62,70 @@ func encodeField(field reflect.Value) (uint32, []byte, error) {
 	)
 	switch field.Type().Kind() {
 	case reflect.Int8:
-		desc = flagValue | 1
+		desc = typeValue | 1
 		data = make([]byte, 1)
 		data[0] = uint8(field.Int()) // #nosec G115
 	case reflect.Int16:
-		desc = flagValue | 2
+		desc = typeValue | 2
 		data = make([]byte, 2)
 		binary.LittleEndian.PutUint16(data, uint16(field.Int())) // #nosec G115
 	case reflect.Int32:
-		desc = flagValue | 4
+		desc = typeValue | 4
 		data = make([]byte, 4)
 		binary.LittleEndian.PutUint32(data, uint32(field.Int())) // #nosec G115
 	case reflect.Int64:
-		desc = flagValue | 8
+		desc = typeValue | 8
 		data = make([]byte, 8)
 		binary.LittleEndian.PutUint64(data, uint64(field.Int())) // #nosec G115
 	case reflect.Uint8:
-		desc = flagValue | 1
+		desc = typeValue | 1
 		data = make([]byte, 1)
 		data[0] = uint8(field.Uint()) // #nosec G115
 	case reflect.Uint16:
-		desc = flagValue | 2
+		desc = typeValue | 2
 		data = make([]byte, 2)
 		binary.LittleEndian.PutUint16(data, uint16(field.Uint())) // #nosec G115
 	case reflect.Uint32:
-		desc = flagValue | 4
+		desc = typeValue | 4
 		data = make([]byte, 4)
 		binary.LittleEndian.PutUint32(data, uint32(field.Uint())) // #nosec G115
 	case reflect.Uint64:
-		desc = flagValue | 8
+		desc = typeValue | 8
 		data = make([]byte, 8)
 		binary.LittleEndian.PutUint64(data, field.Uint())
 	case reflect.Float32:
-		desc = flagValue | 4
+		desc = typeValue | 4
 		data = make([]byte, 4)
 		f := float32(field.Float())
 		n := *(*uint32)(unsafe.Pointer(&f)) // #nosec
 		binary.LittleEndian.PutUint32(data, n)
 	case reflect.Float64:
-		desc = flagValue | 8
+		desc = typeValue | 8
 		data = make([]byte, 8)
 		f := field.Float()
 		n := *(*uint64)(unsafe.Pointer(&f)) // #nosec
 		binary.LittleEndian.PutUint64(data, n)
 	case reflect.Bool:
-		desc = flagValue | 1
+		desc = typeValue | 1
 		data = make([]byte, 1)
 		if field.Bool() {
 			data[0] = 1
 		}
 	case reflect.String:
 		data = stringToUTF16(field.String())
-		desc = flagPointer | uint32(len(data)) // #nosec G115
+		desc = typePointer | uint32(len(data)) // #nosec G115
 	case reflect.Array:
 		data, err = encodeArray(field)
 		if err != nil {
 			return 0, nil, err
 		}
-		desc = flagPointer | uint32(len(data)) // #nosec G115
+		desc = typePointer | uint32(len(data)) // #nosec G115
 	case reflect.Slice:
 		data, err = encodeSlice(field)
 		if err != nil {
 			return 0, nil, err
 		}
-		desc = flagPointer | uint32(len(data)) // #nosec G115
+		desc = typePointer | uint32(len(data)) // #nosec G115
 	default:
 		return 0, nil, fmt.Errorf("field type of %s is not support", field.Kind())
 	}

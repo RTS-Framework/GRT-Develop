@@ -45,11 +45,12 @@ func Unmarshal(data []byte, v any) error {
 	var idx int
 	num := value.NumField()
 	for i := 0; i < num; i++ {
-		if !value.Type().Field(i).IsExported() {
+		typ := value.Type().Field(i)
+		if !typ.IsExported() {
 			continue
 		}
 		if idx >= len(descriptors) {
-			return errors.New("invalid structure field")
+			return fmt.Errorf("structure field %s is overflow", typ.Name)
 		}
 		field := value.Field(i)
 		desc := descriptors[idx]

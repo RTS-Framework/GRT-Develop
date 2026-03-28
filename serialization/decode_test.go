@@ -88,18 +88,37 @@ func TestUnmarshal(t *testing.T) {
 		require.EqualError(t, err, "unexpected EOF")
 	})
 
+	t.Run("structure field overflow", func(t *testing.T) {
+		data := []byte{
+			0xEE, 0xFF, 0xFF, 0xAC,
+			0x02, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x01,
+		}
+		s := struct {
+			Arg1 uint16
+			Arg2 uint16
+		}{}
+
+		err := Unmarshal(data, &s)
+		errStr := "structure field Arg2 is overflow"
+		require.EqualError(t, err, errStr)
+	})
+
 	t.Run("invalid value size", func(t *testing.T) {
 		data := []byte{
 			0xEE, 0xFF, 0xFF, 0xAC,
 			0x03, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x01,
 		}
 		s := struct {
 			Arg1 uint16
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode value: invalid size: 3")
+		errStr := "failed to decode value: invalid size: 3"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("invalid raw data size", func(t *testing.T) {
@@ -113,7 +132,8 @@ func TestUnmarshal(t *testing.T) {
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode value: EOF")
+		errStr := "failed to decode value: EOF"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("not supported field type", func(t *testing.T) {
@@ -145,7 +165,8 @@ func TestUnmarshal(t *testing.T) {
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode pointer: EOF")
+		errStr := "failed to decode pointer: EOF"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("invalid string data", func(t *testing.T) {
@@ -160,7 +181,8 @@ func TestUnmarshal(t *testing.T) {
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode pointer: invalid utf16 string")
+		errStr := "failed to decode pointer: invalid utf16 string"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("invalid array element type", func(t *testing.T) {
@@ -191,7 +213,8 @@ func TestUnmarshal(t *testing.T) {
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode pointer: unexpected EOF")
+		errStr := "failed to decode pointer: unexpected EOF"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("invalid slice element type", func(t *testing.T) {
@@ -222,7 +245,8 @@ func TestUnmarshal(t *testing.T) {
 		}{}
 
 		err := Unmarshal(data, &s)
-		require.EqualError(t, err, "failed to decode pointer: unexpected EOF")
+		errStr := "failed to decode pointer: unexpected EOF"
+		require.EqualError(t, err, errStr)
 	})
 
 	t.Run("invalid pointer type", func(t *testing.T) {

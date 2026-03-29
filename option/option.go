@@ -25,7 +25,7 @@ const (
 // options offset of the option stub.
 const (
 	optOffset                    = 1 + xorKeySize
-	optOffsetExePinningHash      = optOffset + 0
+	optOffsetImagePinningHash    = optOffset + 0
 	optOffsetShieldModuleHash    = optOffset + 8
 	optOffsetShieldEntryPoint    = optOffset + 16
 	optOffsetEnableSecurityMode  = optOffset + 24
@@ -47,7 +47,7 @@ const (
 type Options struct {
 	// runtime will not initialize when the exe name is not expected.
 	// if zero, runtime will skip this detection.
-	ExePinningHash uint64 `toml:"exe_pinning_hash" json:"exe_pinning_hash"`
+	ImagePinningHash uint64 `toml:"image_pinning_hash" json:"image_pinning_hash"`
 
 	// the module hash of the pre-injected shield in,
 	// if 0x0000, runtime will deploy a shield from the built-in shield stub.
@@ -106,7 +106,7 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
 	}
-	binary.LittleEndian.PutUint64(stub[optOffsetExePinningHash:], opts.ExePinningHash)
+	binary.LittleEndian.PutUint64(stub[optOffsetImagePinningHash:], opts.ImagePinningHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldModuleHash:], opts.ShieldModuleHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
 	stub[optOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
@@ -150,7 +150,7 @@ func Get(instance []byte, offset int) (*Options, error) {
 	xor(stub[optOffset:paddingOff], key)
 	// build options
 	opts := Options{
-		ExePinningHash:      binary.LittleEndian.Uint64(stub[optOffsetExePinningHash:]),
+		ImagePinningHash:    binary.LittleEndian.Uint64(stub[optOffsetImagePinningHash:]),
 		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[optOffsetShieldModuleHash:]),
 		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[optOffsetShieldEntryPoint:]),
 		EnableSecurityMode:  stub[optOffsetEnableSecurityMode] != 0,
@@ -172,17 +172,16 @@ func boolToByte(b bool) byte {
 }
 
 func xor(data, key []byte) {
-	keyLen := len(key)
 	for i := 0; i < len(data); i++ {
-		data[i] = data[i] ^ key[i%keyLen]
+		data[i] = data[i] ^ key[i%len(key)]
 	}
 }
 
 // Flag is used to read options from command line.
 func Flag(opts *Options) {
 	flag.Uint64Var(
-		&opts.ExePinningHash, "grt-mph", 0,
-		"set the hash about exe pinning",
+		&opts.ImagePinningHash, "grt-mph", 0,
+		"set the hash about image pinning",
 	)
 	flag.Uint64Var(
 		&opts.ShieldModuleHash, "grt-smh", 0,

@@ -27,7 +27,7 @@ func init() {
 func TestSet(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		opts := &Options{
-			ExePinningHash:      0x1234,
+			ImagePinningHash:    0x1234,
 			ShieldModuleHash:    0x5678,
 			ShieldEntryPoint:    0x9012,
 			EnableSecurityMode:  true,
@@ -49,7 +49,7 @@ func TestSet(t *testing.T) {
 		o, err = Get(output, offset)
 		require.NoError(t, err)
 		opts = &Options{
-			ExePinningHash:      0,
+			ImagePinningHash:    0,
 			ShieldModuleHash:    0,
 			ShieldEntryPoint:    0,
 			EnableSecurityMode:  false,
@@ -111,7 +111,7 @@ func TestSet(t *testing.T) {
 func TestGet(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		opts := &Options{
-			ExePinningHash:      0x1234,
+			ImagePinningHash:    0x1234,
 			ShieldModuleHash:    0x5678,
 			ShieldEntryPoint:    0x9012,
 			EnableSecurityMode:  true,
@@ -155,7 +155,7 @@ func TestGet(t *testing.T) {
 
 func TestFlag(t *testing.T) {
 	opts := Options{
-		ExePinningHash:      0x1234,
+		ImagePinningHash:    0x1234,
 		ShieldModuleHash:    0x5678,
 		ShieldEntryPoint:    0x9012,
 		EnableSecurityMode:  true,

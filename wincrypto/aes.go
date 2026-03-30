@@ -83,9 +83,8 @@ func AESDecrypt(data, key []byte) ([]byte, error) {
 	// remove padding data
 	outputSize := len(output)
 	paddingSize := int(output[outputSize-1])
-	offset := outputSize - paddingSize
-	if offset < 0 {
+	if paddingSize > AESBlockSize || paddingSize == 0 {
 		return nil, ErrInvalidPaddingSize
 	}
-	return output[:offset], nil
+	return output[:outputSize-paddingSize], nil
 }

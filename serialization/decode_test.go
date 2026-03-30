@@ -34,14 +34,14 @@ func TestUnmarshal(t *testing.T) {
 			Arg19: 0.123459664,
 			Arg20: true,
 
-			unexported2: 1,
+			unexported2: 2,
 
 			Arg26: [2]uint16{0x1234, 0x5678},
 			Arg37: []uint16{0x5678, 0x1234},
 
 			Arg42: []bool{true, false},
 
-			unexported3: 2,
+			unexported3: 3,
 		}
 		data, err := Marshal(&s1)
 		require.NoError(t, err)
@@ -105,19 +105,19 @@ func TestUnmarshal(t *testing.T) {
 		require.EqualError(t, err, errStr)
 	})
 
-	t.Run("invalid value size", func(t *testing.T) {
+	t.Run("mismatched field size", func(t *testing.T) {
 		data := []byte{
 			0xEE, 0xFF, 0xFF, 0xAC,
 			0x03, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
-			0x00, 0x01,
+			0x01, 0x00, 0x00, 0x00,
 		}
 		s := struct {
 			Arg1 uint16
 		}{}
 
 		err := Unmarshal(data, &s)
-		errStr := "failed to decode value: invalid size: 3"
+		errStr := "failed to decode value: invalid field size: 3"
 		require.EqualError(t, err, errStr)
 	})
 

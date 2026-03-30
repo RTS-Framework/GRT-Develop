@@ -77,7 +77,7 @@ func Unmarshal(data []byte, v any) error {
 func decodeValue(reader *bytes.Reader, value reflect.Value, size uint32) error {
 	typ := value.Type()
 	if uint32(typ.Size()) != size { // #nosec G115
-		return fmt.Errorf("invalid size: %d", size)
+		return fmt.Errorf("invalid field size: %d", size)
 	}
 	buf := make([]byte, size)
 	_, err := io.ReadFull(reader, buf)

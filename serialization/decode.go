@@ -13,18 +13,9 @@ import (
 // Unmarshal is used to unserialize binary data to structure.
 func Unmarshal(data []byte, v any) error {
 	value := reflect.ValueOf(v)
-	if value.Kind() != reflect.Ptr || value.IsNil() {
-		return errors.New("value must be a non-nil pointer")
-	}
-	value = value.Elem()
-	if value.Kind() != reflect.Struct {
-		return errors.New("value must be a pointer to struct")
-	}
-	if len(data) < 4 {
-		return errors.New("invalid data length")
-	}
-	if binary.LittleEndian.Uint32(data) != magic {
-		return errors.New("invalid magic number")
+	err := checkValue(data, value)
+	if err != nil {
+		return err
 	}
 	// parse descriptors and check the number of the structure fields
 	var descriptors []uint32
@@ -69,6 +60,23 @@ func Unmarshal(data []byte, v any) error {
 			}
 		}
 		idx++
+	}
+	return nil
+}
+
+func checkValue(data []byte, value reflect.Value) error {
+	if len(data) < 4 {
+		return errors.New("invalid data length")
+	}
+	if binary.LittleEndian.Uint32(data) != magic {
+		return errors.New("invalid magic number")
+	}
+	if value.Kind() != reflect.Ptr || value.IsNil() {
+		return errors.New("value must be a non-nil pointer")
+	}
+	value = value.Elem()
+	if value.Kind() != reflect.Struct {
+		return errors.New("value must be a pointer to struct")
 	}
 	return nil
 }

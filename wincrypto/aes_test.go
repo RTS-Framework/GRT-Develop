@@ -73,7 +73,7 @@ func TestAESDecrypt(t *testing.T) {
 		require.Nil(t, output)
 	})
 
-	t.Run("invalid key", func(t *testing.T) {
+	t.Run("invalid key size", func(t *testing.T) {
 		output, err := AESDecrypt(make([]byte, 32), nil)
 		require.EqualError(t, err, "crypto/aes: invalid key size 0")
 		require.Nil(t, output)
@@ -90,7 +90,16 @@ func TestAESDecrypt(t *testing.T) {
 	})
 
 	t.Run("invalid padding size", func(t *testing.T) {
-		plainData, err := AESDecrypt(make([]byte, 32), key)
+		cipherData := make([]byte, 32)
+
+		plainData, err := AESDecrypt(cipherData, key)
+		require.Equal(t, ErrInvalidPaddingSize, err)
+		require.Nil(t, plainData)
+
+		cipherData = make([]byte, 32)
+		cipherData[31] = 17
+
+		plainData, err = AESDecrypt(cipherData, key)
 		require.Equal(t, ErrInvalidPaddingSize, err)
 		require.Nil(t, plainData)
 	})

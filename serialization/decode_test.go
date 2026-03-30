@@ -56,15 +56,6 @@ func TestUnmarshal(t *testing.T) {
 		require.Equal(t, s1, s2)
 	})
 
-	t.Run("invalid value type", func(t *testing.T) {
-		var s1 int
-		err := Unmarshal(nil, s1)
-		require.EqualError(t, err, "value must be a non-nil pointer")
-
-		err = Unmarshal(nil, &s1)
-		require.EqualError(t, err, "value must be a pointer to struct")
-	})
-
 	t.Run("invalid data length", func(t *testing.T) {
 		var s1 testStruct
 		err := Unmarshal(nil, &s1)
@@ -77,6 +68,15 @@ func TestUnmarshal(t *testing.T) {
 		var s1 testStruct
 		err := Unmarshal(data, &s1)
 		require.EqualError(t, err, "invalid magic number")
+	})
+
+	t.Run("invalid value type", func(t *testing.T) {
+		var s1 int
+		err := Unmarshal(nil, s1)
+		require.EqualError(t, err, "value must be a non-nil pointer")
+
+		err = Unmarshal(nil, &s1)
+		require.EqualError(t, err, "value must be a pointer to struct")
 	})
 
 	t.Run("invalid descriptor", func(t *testing.T) {

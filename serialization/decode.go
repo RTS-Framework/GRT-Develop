@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
-	"unsafe"
 )
 
 // Unmarshal is used to unserialize binary data to structure.
@@ -34,6 +34,7 @@ func Unmarshal(data []byte, v any) error {
 	}
 	// process the structure value
 	var idx int
+	value = value.Elem()
 	num := value.NumField()
 	for i := 0; i < num; i++ {
 		typ := value.Type().Field(i)
@@ -74,8 +75,7 @@ func checkValue(data []byte, value reflect.Value) error {
 	if value.Kind() != reflect.Ptr || value.IsNil() {
 		return errors.New("value must be a non-nil pointer")
 	}
-	value = value.Elem()
-	if value.Kind() != reflect.Struct {
+	if value.Elem().Kind() != reflect.Struct {
 		return errors.New("value must be a pointer to struct")
 	}
 	return nil
@@ -117,12 +117,12 @@ func decodeValue(reader *bytes.Reader, value reflect.Value, size uint32) error {
 		value.SetUint(val)
 	case reflect.Float32:
 		val := binary.LittleEndian.Uint32(buf)
-		n := *(*float32)(unsafe.Pointer(&val)) // #nosec
-		value.SetFloat(float64(n))
+		f := math.Float32frombits(val)
+		value.SetFloat(float64(f))
 	case reflect.Float64:
 		val := binary.LittleEndian.Uint64(buf)
-		n := *(*float64)(unsafe.Pointer(&val)) // #nosec
-		value.SetFloat(n)
+		f := math.Float64frombits(val)
+		value.SetFloat(f)
 	case reflect.Bool:
 		value.SetBool(buf[0] == 1)
 	default:

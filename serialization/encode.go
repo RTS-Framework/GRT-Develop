@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
-	"unsafe"
 )
 
 // Marshal is used to serialize structure to binary data.
@@ -97,13 +97,13 @@ func encodeField(field reflect.Value) (uint32, []byte, error) {
 		desc = typeValue | 4
 		data = make([]byte, 4)
 		f := float32(field.Float())
-		n := *(*uint32)(unsafe.Pointer(&f)) // #nosec
+		n := math.Float32bits(f)
 		binary.LittleEndian.PutUint32(data, n)
 	case reflect.Float64:
 		desc = typeValue | 8
 		data = make([]byte, 8)
 		f := field.Float()
-		n := *(*uint64)(unsafe.Pointer(&f)) // #nosec
+		n := math.Float64bits(f)
 		binary.LittleEndian.PutUint64(data, n)
 	case reflect.Bool:
 		desc = typeValue | 1
@@ -189,12 +189,12 @@ func encodeElement(elem reflect.Value) ([]byte, error) {
 	case reflect.Float32:
 		data = make([]byte, 4)
 		f := float32(elem.Float())
-		n := *(*uint32)(unsafe.Pointer(&f)) // #nosec
+		n := math.Float32bits(f)
 		binary.LittleEndian.PutUint32(data, n)
 	case reflect.Float64:
 		data = make([]byte, 8)
 		f := elem.Float()
-		n := *(*uint64)(unsafe.Pointer(&f)) // #nosec
+		n := math.Float64bits(f)
 		binary.LittleEndian.PutUint64(data, n)
 	case reflect.Bool:
 		data = make([]byte, 1)

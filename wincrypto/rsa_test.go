@@ -206,6 +206,24 @@ func TestImportRSAPublicKeyBlob(t *testing.T) {
 		require.Nil(t, publicKey)
 	})
 
+	t.Run("zero blob bit len", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
+			Type:     publicKeyBlob,
+			Version:  curBlobVersion,
+			AiKeyAlg: cAlgRSASign,
+		})
+		_ = binary.Write(buf, binary.LittleEndian, rsaPubKey{
+			Magic:  magicRSA1,
+			BitLen: 0,
+			PubExp: 65537,
+		})
+
+		privateKey, err := ImportRSAPublicKeyBlob(buf.Bytes())
+		require.EqualError(t, err, "blob bit length is zero")
+		require.Nil(t, privateKey)
+	})
+
 	t.Run("invalid blob bit length", func(t *testing.T) {
 		buf := new(bytes.Buffer)
 		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
@@ -221,6 +239,24 @@ func TestImportRSAPublicKeyBlob(t *testing.T) {
 
 		publicKey, err := ImportRSAPublicKeyBlob(buf.Bytes())
 		require.EqualError(t, err, "invalid blob bit length")
+		require.Nil(t, publicKey)
+	})
+
+	t.Run("too large blob bit length", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
+			Type:     publicKeyBlob,
+			Version:  curBlobVersion,
+			AiKeyAlg: cAlgRSASign,
+		})
+		_ = binary.Write(buf, binary.LittleEndian, rsaPubKey{
+			Magic:  magicRSA1,
+			BitLen: 65536,
+			PubExp: 65537,
+		})
+
+		publicKey, err := ImportRSAPublicKeyBlob(buf.Bytes())
+		require.EqualError(t, err, "blob bit length is too large")
 		require.Nil(t, publicKey)
 	})
 
@@ -331,6 +367,24 @@ func TestImportRSAPrivateKeyBlob(t *testing.T) {
 		require.Nil(t, privateKey)
 	})
 
+	t.Run("zero blob bit len", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
+			Type:     privateKeyBlob,
+			Version:  curBlobVersion,
+			AiKeyAlg: cAlgRSASign,
+		})
+		_ = binary.Write(buf, binary.LittleEndian, rsaPubKey{
+			Magic:  magicRSA2,
+			BitLen: 0,
+			PubExp: 65537,
+		})
+
+		privateKey, err := ImportRSAPrivateKeyBlob(buf.Bytes())
+		require.EqualError(t, err, "blob bit length is zero")
+		require.Nil(t, privateKey)
+	})
+
 	t.Run("invalid blob bit length", func(t *testing.T) {
 		buf := new(bytes.Buffer)
 		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
@@ -346,6 +400,24 @@ func TestImportRSAPrivateKeyBlob(t *testing.T) {
 
 		privateKey, err := ImportRSAPrivateKeyBlob(buf.Bytes())
 		require.EqualError(t, err, "invalid blob bit length")
+		require.Nil(t, privateKey)
+	})
+
+	t.Run("too large blob bit length", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		_ = binary.Write(buf, binary.LittleEndian, blobHeader{
+			Type:     privateKeyBlob,
+			Version:  curBlobVersion,
+			AiKeyAlg: cAlgRSASign,
+		})
+		_ = binary.Write(buf, binary.LittleEndian, rsaPubKey{
+			Magic:  magicRSA2,
+			BitLen: 65536,
+			PubExp: 65537,
+		})
+
+		privateKey, err := ImportRSAPrivateKeyBlob(buf.Bytes())
+		require.EqualError(t, err, "blob bit length is too large")
 		require.Nil(t, privateKey)
 	})
 

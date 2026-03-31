@@ -101,18 +101,24 @@ func Decode(stub []byte) ([]*Arg, error) {
 	if numArgs == 0 {
 		return nil, nil
 	}
+	if numArgs > 1024 {
+		return nil, errors.New("invalid num argument")
+	}
 	stub = bytes.Clone(stub)
 	decryptStub(stub)
 	// decode arguments
 	args := make([]*Arg, 0, numArgs)
-	offset := uint32(offsetFirstArg)
-	rem := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
+	offset := int64(offsetFirstArg)
+	rem := int64(binary.LittleEndian.Uint32(stub[offsetArgsSize:]))
 	for i := 0; i < int(numArgs); i++ {
+		if offset+8 > int64(len(stub)) {
+			return nil, errors.New("invalid argument data")
+		}
 		id := binary.LittleEndian.Uint32(stub[offset:])
 		offset += 4
-		size := binary.LittleEndian.Uint32(stub[offset:])
+		size := int64(binary.LittleEndian.Uint32(stub[offset:]))
 		offset += 4
-		if offset+size > uint32(len(stub)) || size > rem-(4+4) { // #nosec G115
+		if offset+size > int64(len(stub)) || size > rem-(4+4) {
 			return nil, errors.New("invalid argument size")
 		}
 		data := make([]byte, size)

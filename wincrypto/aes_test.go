@@ -97,10 +97,19 @@ func TestAESDecrypt(t *testing.T) {
 		require.Nil(t, plainData)
 
 		cipherData = make([]byte, 32)
-		cipherData[31] = 17
+		cipherData[31] = 17 // decrypted
 
 		plainData, err = AESDecrypt(cipherData, key)
 		require.Equal(t, ErrInvalidPaddingSize, err)
+		require.Nil(t, plainData)
+	})
+
+	t.Run("invalid padding data", func(t *testing.T) {
+		cipherData := make([]byte, 32)
+		cipherData[31] = 7 // decrypted
+
+		plainData, err := AESDecrypt(cipherData, key)
+		require.Equal(t, ErrInvalidPaddingData, err)
 		require.Nil(t, plainData)
 	})
 }

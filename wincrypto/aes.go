@@ -26,6 +26,7 @@ var (
 	ErrEmptyCipherData    = errors.New("empty aes cipher data")
 	ErrInvalidCipherData  = errors.New("invalid aes cipher data")
 	ErrInvalidPaddingSize = errors.New("invalid aes padding size")
+	ErrInvalidPaddingData = errors.New("invalid aes padding data")
 )
 
 // AESEncrypt is used to encrypt data with CBC mode and PKCS#5 padding method.
@@ -80,11 +81,16 @@ func AESDecrypt(data, key []byte) ([]byte, error) {
 	// decrypt cipher data
 	decrypter := cipher.NewCBCDecrypter(block, iv)
 	decrypter.CryptBlocks(output, data[AESIVSize:])
-	// remove padding data
+	// process padding data
 	outputSize := len(output)
 	paddingSize := int(output[outputSize-1])
 	if paddingSize > AESBlockSize || paddingSize == 0 {
 		return nil, ErrInvalidPaddingSize
+	}
+	for i := outputSize - paddingSize; i < outputSize; i++ {
+		if output[i] != byte(paddingSize) {
+			return nil, ErrInvalidPaddingData
+		}
 	}
 	return output[:outputSize-paddingSize], nil
 }

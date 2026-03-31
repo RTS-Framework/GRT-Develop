@@ -98,8 +98,14 @@ func ImportRSAPublicKeyBlob(data []byte) (*rsa.PublicKey, error) {
 	if rp.Magic != magicRSA1 {
 		return nil, errors.New("invalid blob magic")
 	}
+	if rp.BitLen == 0 {
+		return nil, errors.New("blob bit length is zero")
+	}
 	if rp.BitLen%8 != 0 {
 		return nil, errors.New("invalid blob bit length")
+	}
+	if rp.BitLen > 16384 {
+		return nil, errors.New("blob bit length is too large")
 	}
 	modulus := make([]byte, rp.BitLen/8)
 	err = binary.Read(reader, binary.LittleEndian, modulus)
@@ -140,8 +146,14 @@ func ImportRSAPrivateKeyBlob(data []byte) (*rsa.PrivateKey, error) {
 	if rp.Magic != magicRSA2 {
 		return nil, errors.New("invalid blob magic")
 	}
+	if rp.BitLen == 0 {
+		return nil, errors.New("blob bit length is zero")
+	}
 	if rp.BitLen%8 != 0 {
 		return nil, errors.New("invalid blob bit length")
+	}
+	if rp.BitLen > 16384 {
+		return nil, errors.New("blob bit length is too large")
 	}
 	modulus := make([]byte, rp.BitLen/8)
 	err = binary.Read(reader, binary.LittleEndian, modulus)

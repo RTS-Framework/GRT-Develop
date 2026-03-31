@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"flag"
+	"unicode/utf16"
 )
 
 // +------------+---------+---------+---------+---------+
@@ -180,7 +181,7 @@ func xor(data, key []byte) {
 // Flag is used to read options from command line.
 func Flag(opts *Options) {
 	flag.Uint64Var(
-		&opts.ImagePinningHash, "grt-mph", 0,
+		&opts.ImagePinningHash, "grt-iph", 0,
 		"set the hash about image pinning",
 	)
 	flag.Uint64Var(
@@ -219,4 +220,23 @@ func Flag(opts *Options) {
 		&opts.TrackCurrentThread, "grt-tct", false,
 		"Gleam-RT: track current thread for test or debug mode",
 	)
+}
+
+// Hash is used to calculate the exe or dll name hash for options.
+func Hash(module string) uint64 {
+	hash := uint64(0xE3C817DEA9BFE921)
+	s := utf16.Encode([]rune(module))
+	for _, c := range s {
+		if c >= 'a' && c <= 'z' {
+			c -= 0x20
+		}
+		hash = ror64(hash, 7)
+		hash += uint64(c)
+		hash = ror64(hash, 3)
+	}
+	return hash
+}
+
+func ror64(value, bits uint64) uint64 {
+	return value>>bits | value<<(64-bits)
 }

@@ -71,11 +71,16 @@ func TestUnmarshal(t *testing.T) {
 	})
 
 	t.Run("invalid value type", func(t *testing.T) {
+		data := []byte{
+			0xEE, 0xFF, 0xFF, 0xAC,
+			0x00, 0x00, 0x00, 0x00,
+		}
+
 		var s1 int
-		err := Unmarshal(nil, s1)
+		err := Unmarshal(data, s1)
 		require.EqualError(t, err, "value must be a non-nil pointer")
 
-		err = Unmarshal(nil, &s1)
+		err = Unmarshal(data, &s1)
 		require.EqualError(t, err, "value must be a pointer to struct")
 	})
 

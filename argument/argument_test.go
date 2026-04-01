@@ -36,7 +36,20 @@ func TestEncode(t *testing.T) {
 		require.Len(t, stub, expected)
 	})
 
-	t.Run("id is already exists", func(t *testing.T) {
+	t.Run("too many arguments", func(t *testing.T) {
+		args := make([]*Arg, MaxNumArguments+1)
+		stub, err := Encode(args...)
+		require.EqualError(t, err, "too many arguments")
+		require.Nil(t, stub)
+	})
+
+	t.Run("nil argument", func(t *testing.T) {
+		stub, err := Encode(nil)
+		require.EqualError(t, err, "appear nil argument")
+		require.Nil(t, stub)
+	})
+
+	t.Run("id already exists", func(t *testing.T) {
 		arg0 := &Arg{
 			ID:   0,
 			Data: []byte{0x12, 0x34, 0x56, 0x78},
@@ -46,7 +59,7 @@ func TestEncode(t *testing.T) {
 			Data: bytes.Repeat([]byte("hello runtime"), 10),
 		}
 		stub, err := Encode(arg0, arg1)
-		require.EqualError(t, err, "argument id 0 is already exists")
+		require.EqualError(t, err, "argument id 0 already exists")
 		require.Nil(t, stub)
 	})
 
@@ -137,7 +150,16 @@ func TestDecode(t *testing.T) {
 		stub, err := Encode(arg)
 		require.NoError(t, err)
 
-		binary.LittleEndian.PutUint32(stub[offsetNumArgs+4:], 0xFFFFFFFF)
+		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0xFFFFFFFF)
+
+		var checksum uint32
+		for _, b := range stub[:offsetChecksum] {
+			checksum += checksum << 1
+			checksum += uint32(b)
+		}
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, checksum)
+		copy(stub[offsetChecksum:], buf)
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid num argument")

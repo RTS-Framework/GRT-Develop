@@ -142,6 +142,31 @@ func TestDecode(t *testing.T) {
 		require.Nil(t, output)
 	})
 
+	t.Run("invalid argument total size", func(t *testing.T) {
+		arg := &Arg{
+			ID:   0,
+			Data: []byte{0x12, 0x34, 0x56, 0x78},
+		}
+		stub, err := Encode(arg)
+		require.NoError(t, err)
+
+		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0)
+		binary.LittleEndian.PutUint32(stub[offsetArgsSize:], 1234)
+
+		var checksum uint32
+		for _, b := range stub[:offsetChecksum] {
+			checksum += checksum << 1
+			checksum += uint32(b)
+		}
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, checksum)
+		copy(stub[offsetChecksum:], buf)
+
+		output, err := Decode(stub)
+		require.EqualError(t, err, "invalid argument total size")
+		require.Nil(t, output)
+	})
+
 	t.Run("invalid num argument", func(t *testing.T) {
 		arg := &Arg{
 			ID:   0,

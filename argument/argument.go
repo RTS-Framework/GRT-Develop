@@ -108,8 +108,12 @@ func Decode(stub []byte) ([]*Arg, error) {
 		return nil, errors.New("invalid argument stub checksum")
 	}
 	numArgs := binary.LittleEndian.Uint32(stub[offsetNumArgs:])
-	if numArgs == 0 {
+	argsSize := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
+	if numArgs == 0 && argsSize == 0 {
 		return nil, nil
+	}
+	if numArgs == 0 {
+		return nil, errors.New("invalid argument total size")
 	}
 	if numArgs > MaxNumArguments {
 		return nil, errors.New("invalid num argument")
@@ -128,7 +132,7 @@ func Decode(stub []byte) ([]*Arg, error) {
 		offset += 4
 		size := int64(binary.LittleEndian.Uint32(stub[offset:]))
 		offset += 4
-		if offset+size > int64(len(stub)) || size > rem-(4+4) {
+		if offset+size > int64(len(stub)) || 4+4+size > rem {
 			return nil, errors.New("invalid argument size")
 		}
 		data := make([]byte, size)

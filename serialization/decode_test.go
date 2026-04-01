@@ -190,6 +190,22 @@ func TestUnmarshal(t *testing.T) {
 		require.EqualError(t, err, errStr)
 	})
 
+	t.Run("invalid array length", func(t *testing.T) {
+		data := []byte{
+			0xEE, 0xFF, 0xFF, 0xAC,
+			0x08, 0x00, 0x00, 0x80,
+			0x00, 0x00, 0x00, 0x00,
+			0x12, 0x12, 0x12,
+		}
+		s := struct {
+			Arg1 [2]uint16
+		}{}
+
+		err := Unmarshal(data, &s)
+		errStr := "failed to decode pointer: invalid array length"
+		require.EqualError(t, err, errStr)
+	})
+
 	t.Run("invalid array element type", func(t *testing.T) {
 		data := []byte{
 			0xEE, 0xFF, 0xFF, 0xAC,

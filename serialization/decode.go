@@ -158,6 +158,9 @@ func decodePointer(reader *bytes.Reader, field reflect.Value, size uint32) error
 			return fmt.Errorf("invalid array element type: %s", t.Name())
 		}
 		l := int(size / s)
+		if l != field.Type().Len() {
+			return errors.New("invalid array length")
+		}
 		array := reflect.New(reflect.ArrayOf(l, t)).Elem()
 		for i := 0; i < l; i++ {
 			elem := reflect.New(t).Elem()
@@ -175,14 +178,14 @@ func decodePointer(reader *bytes.Reader, field reflect.Value, size uint32) error
 			return fmt.Errorf("invalid slice element type: %s", t.Name())
 		}
 		l := int(size / s)
-		slice := reflect.MakeSlice(reflect.SliceOf(t), l, l)
+		slice := reflect.MakeSlice(reflect.SliceOf(t), 0, 0)
 		for i := 0; i < l; i++ {
 			elem := reflect.New(t).Elem()
 			err = decodeValue(reader, elem, s)
 			if err != nil {
 				return err
 			}
-			slice.Index(i).Set(elem)
+			slice = reflect.Append(slice, elem)
 		}
 		field.Set(slice)
 	default:

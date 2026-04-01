@@ -98,14 +98,9 @@ func ImportRSAPublicKeyBlob(data []byte) (*rsa.PublicKey, error) {
 	if rp.Magic != magicRSA1 {
 		return nil, errors.New("invalid blob magic")
 	}
-	if rp.BitLen == 0 {
-		return nil, errors.New("blob bit length is zero")
-	}
-	if rp.BitLen%8 != 0 {
-		return nil, errors.New("invalid blob bit length")
-	}
-	if rp.BitLen > 16384 {
-		return nil, errors.New("blob bit length is too large")
+	err = checkPublicKey(&rp)
+	if err != nil {
+		return nil, err
 	}
 	modulus := make([]byte, rp.BitLen/8)
 	err = binary.Read(reader, binary.LittleEndian, modulus)
@@ -146,14 +141,9 @@ func ImportRSAPrivateKeyBlob(data []byte) (*rsa.PrivateKey, error) {
 	if rp.Magic != magicRSA2 {
 		return nil, errors.New("invalid blob magic")
 	}
-	if rp.BitLen == 0 {
-		return nil, errors.New("blob bit length is zero")
-	}
-	if rp.BitLen%8 != 0 {
-		return nil, errors.New("invalid blob bit length")
-	}
-	if rp.BitLen > 16384 {
-		return nil, errors.New("blob bit length is too large")
+	err = checkPublicKey(&rp)
+	if err != nil {
+		return nil, err
 	}
 	modulus := make([]byte, rp.BitLen/8)
 	err = binary.Read(reader, binary.LittleEndian, modulus)
@@ -201,6 +191,19 @@ func ImportRSAPrivateKeyBlob(data []byte) (*rsa.PrivateKey, error) {
 	}
 	privateKey.Precompute()
 	return &privateKey, nil
+}
+
+func checkPublicKey(p *rsaPubKey) error {
+	if p.BitLen == 0 {
+		return errors.New("blob bit length is zero")
+	}
+	if p.BitLen%8 != 0 {
+		return errors.New("invalid blob bit length")
+	}
+	if p.BitLen > 16384 {
+		return errors.New("blob bit length is too large")
+	}
+	return nil
 }
 
 // ExportRSAPublicKeyBlob is used to export rsa public key with PublicKeyBlob.

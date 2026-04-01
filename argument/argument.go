@@ -14,6 +14,9 @@ import (
 // | 32 byte |  uint32  |  uint32   |  uint32  | uint32 |  uint32  |   var    |
 // +---------+----------+-----------+----------+--------+----------+----------+
 
+// MaxNumArguments is the maximum number of the arguments.
+const MaxNumArguments = 1024
+
 const (
 	cryptoKeySize  = 32
 	offsetNumArgs  = 32
@@ -30,6 +33,9 @@ type Arg struct {
 
 // Encode is used to encode and encrypt arguments to stub.
 func Encode(args ...*Arg) ([]byte, error) {
+	if len(args) > MaxNumArguments {
+		return nil, errors.New("too many arguments")
+	}
 	key := make([]byte, cryptoKeySize)
 	_, err := rand.Read(key)
 	if err != nil {
@@ -44,11 +50,14 @@ func Encode(args ...*Arg) ([]byte, error) {
 	binary.LittleEndian.PutUint32(buf, uint32(len(args))) // #nosec G115
 	buffer.Write(buf)
 	// calculate the total size of the arguments
-	var argsSize int
+	var argsSize uint32
 	for i := 0; i < len(args); i++ {
-		argsSize += 4 + 4 + len(args[i].Data)
+		if args[i] == nil {
+			return nil, errors.New("appear nil argument")
+		}
+		argsSize += 4 + 4 + uint32(len(args[i].Data)) // #nosec G115
 	}
-	binary.LittleEndian.PutUint32(buf, uint32(argsSize)) // #nosec G115
+	binary.LittleEndian.PutUint32(buf, argsSize)
 	buffer.Write(buf)
 	// calculate header checksum
 	var checksum uint32
@@ -59,13 +68,14 @@ func Encode(args ...*Arg) ([]byte, error) {
 	binary.LittleEndian.PutUint32(buf, checksum)
 	buffer.Write(buf)
 	// write arguments
+	buffer.Grow(int(argsSize))
 	ids := make(map[uint32]struct{})
 	for i := 0; i < len(args); i++ {
 		id := args[i].ID
 		data := args[i].Data
 		// check ID is already exists
 		if _, ok := ids[id]; ok {
-			return nil, fmt.Errorf("argument id %d is already exists", id)
+			return nil, fmt.Errorf("argument id %d already exists", id)
 		}
 		ids[id] = struct{}{}
 		// write argument id
@@ -101,7 +111,7 @@ func Decode(stub []byte) ([]*Arg, error) {
 	if numArgs == 0 {
 		return nil, nil
 	}
-	if numArgs > 1024 {
+	if numArgs > MaxNumArguments {
 		return nil, errors.New("invalid num argument")
 	}
 	stub = bytes.Clone(stub)

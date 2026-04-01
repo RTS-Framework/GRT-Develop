@@ -129,6 +129,39 @@ func TestDecode(t *testing.T) {
 		require.Nil(t, output)
 	})
 
+	t.Run("invalid num argument", func(t *testing.T) {
+		arg := &Arg{
+			ID:   0,
+			Data: []byte{0x12, 0x34, 0x56, 0x78},
+		}
+		stub, err := Encode(arg)
+		require.NoError(t, err)
+
+		binary.LittleEndian.PutUint32(stub[offsetNumArgs+4:], 0xFFFFFFFF)
+
+		output, err := Decode(stub)
+		require.EqualError(t, err, "invalid num argument")
+		require.Nil(t, output)
+	})
+
+	t.Run("invalid argument data", func(t *testing.T) {
+		arg := &Arg{
+			ID:   0,
+			Data: []byte{0x12, 0x34, 0x56, 0x78},
+		}
+		stub, err := Encode(arg)
+		require.NoError(t, err)
+
+		// corrupt the argument size to be too large
+		decryptStub(stub)
+		stub = stub[:len(stub)-5]
+		encryptStub(stub)
+
+		output, err := Decode(stub)
+		require.EqualError(t, err, "invalid argument data")
+		require.Nil(t, output)
+	})
+
 	t.Run("invalid argument size", func(t *testing.T) {
 		arg := &Arg{
 			ID:   0,

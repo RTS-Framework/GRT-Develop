@@ -101,7 +101,7 @@ func AESDecrypt(data, key []byte) ([]byte, error) {
 		// constant-time: 1 if i < paddingSize, 0 otherwise
 		inRange := subtle.ConstantTimeLessOrEq(i, paddingSize-1)
 		// constant-time: 1 if byte matches paddingSize, 0 otherwise
-		match := subtle.ConstantTimeByteEq(output[outputSize-1-i], byte(paddingSize))
+		match := subtle.ConstantTimeByteEq(output[outputSize-1-i], byte(paddingSize)) // #nosec G115
 		// if inRange: require match; if not inRange: accept (mask = 1)
 		// result = inRange*match + (1-inRange)*1 = 1 - inRange + inRange*match
 		mask := 1 - inRange + inRange*match

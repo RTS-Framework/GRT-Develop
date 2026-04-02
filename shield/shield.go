@@ -34,7 +34,7 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	// locate shield stub in runtime template
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
-	offset := bytes.Index(template, stub)
+	offset := bytes.LastIndex(template, stub)
 	if offset == -1 {
 		return nil, errors.New("invalid runtime shield stub")
 	}

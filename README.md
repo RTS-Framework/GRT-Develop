@@ -2,6 +2,7 @@
 A package for deep customization of Gleam-RT. 
 
 ## option and argument
+
 ```go
 package main
 
@@ -11,17 +12,28 @@ import (
 
     "github.com/RTS-Framework/GRT-Develop/argument"
     "github.com/RTS-Framework/GRT-Develop/option"
+    "github.com/RTS-Framework/GRT-Develop/shield"
 )
 
 func main() {
     template, err := os.ReadFile("Gleam-RT.bin")
     checkError(err)
 
+    var (
+        shieldInst []byte
+        decoyInst  []byte
+    ) 
+    template, err = shield.Set(template, shieldInst, decoyInst)
+    checkError(err)
+
     opts := option.Options{
-	    EnableSecurityMode:  false,
-	    DisableDetector:     false,
+        ImagePinningHash:    option.Hash("test.exe"),
+        ShieldModuleHash:    option.Hash("test.dll"),
+        ShieldEntryPoint:    0x1234,
+        EnableSecurityMode:  false,
+        DisableDetector:     false,
         DisableWatchdog:     false,
-	    DisableSysmon:       false,
+        DisableSysmon:       false,
         NotEraseInstruction: false,
         NotAdjustProtect:    false,
         TrackCurrentThread:  false,

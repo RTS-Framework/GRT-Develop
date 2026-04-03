@@ -85,7 +85,7 @@ func Encode(args ...*Arg) ([]byte, error) {
 	xorHeader(stub)
 	encryptStub(stub)
 	// calculate argument checksum
-	checksum := calculateChecksum(stub[offsetFirstArg:])
+	checksum := calculateChecksum(stub)
 	binary.LittleEndian.PutUint32(stub[offsetChecksum:], checksum)
 	return stub, nil
 }
@@ -96,7 +96,7 @@ func Decode(stub []byte) ([]*Arg, error) {
 		return nil, errors.New("invalid argument stub")
 	}
 	// calculate checksum
-	checksum := calculateChecksum(stub[offsetFirstArg:])
+	checksum := calculateChecksum(stub)
 	expected := binary.LittleEndian.Uint32(stub[offsetChecksum:])
 	if checksum != expected {
 		return nil, errors.New("invalid argument stub checksum")
@@ -195,7 +195,8 @@ func decryptStub(stub []byte) {
 	}
 }
 
-func calculateChecksum(data []byte) uint32 {
+func calculateChecksum(stub []byte) uint32 {
+	data := stub[offsetFirstArg:]
 	var crc uint32 = 0xFFFFFFFF
 	for i := 0; i < len(data); i++ {
 		crc ^= uint32(data[i])

@@ -106,7 +106,7 @@ func TestDecode(t *testing.T) {
 		require.Equal(t, args, output)
 	})
 
-	t.Run("no argument", func(t *testing.T) {
+	t.Run("empty argument", func(t *testing.T) {
 		stub, err := Encode()
 		require.NoError(t, err)
 
@@ -155,11 +155,7 @@ func TestDecode(t *testing.T) {
 
 		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0)
 		binary.LittleEndian.PutUint32(stub[offsetArgsSize:], 1234)
-
-		checksum := calculateChecksum(stub[:offsetChecksum])
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, checksum)
-		copy(stub[offsetChecksum:], buf)
+		xorHeader(stub)
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid argument total size")
@@ -175,11 +171,7 @@ func TestDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0xFFFFFFFF)
-
-		checksum := calculateChecksum(stub[:offsetChecksum])
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, checksum)
-		copy(stub[offsetChecksum:], buf)
+		xorHeader(stub)
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid num argument")
@@ -198,6 +190,8 @@ func TestDecode(t *testing.T) {
 		decryptStub(stub)
 		stub = stub[:len(stub)-5]
 		encryptStub(stub)
+		checksum := calculateChecksum(stub)
+		binary.LittleEndian.PutUint32(stub[offsetChecksum:], checksum)
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid argument data")
@@ -216,6 +210,8 @@ func TestDecode(t *testing.T) {
 		decryptStub(stub)
 		binary.LittleEndian.PutUint32(stub[offsetFirstArg+4:], 0xFFFFFFFF)
 		encryptStub(stub)
+		checksum := calculateChecksum(stub)
+		binary.LittleEndian.PutUint32(stub[offsetChecksum:], checksum)
 
 		output, err := Decode(stub)
 		require.EqualError(t, err, "invalid argument size")
@@ -225,6 +221,8 @@ func TestDecode(t *testing.T) {
 		decryptStub(stub)
 		binary.LittleEndian.PutUint32(stub[offsetFirstArg+4:], uint32(len(arg.Data)+1))
 		encryptStub(stub)
+		checksum = calculateChecksum(stub)
+		binary.LittleEndian.PutUint32(stub[offsetChecksum:], checksum)
 
 		output, err = Decode(stub)
 		require.EqualError(t, err, "invalid argument size")

@@ -11,7 +11,7 @@ import (
 // +---------+----------+-----------+----------+--------+----------+----------+
 // |   key   | num args | args size | checksum | arg id | arg size | arg data |
 // +---------+----------+-----------+----------+--------+----------+----------+
-// | 32 byte |  uint32  |  uint32   |  uint32  | uint32 |  uint32  |   var    |
+// | 32 byte |  uint16  |  uint32   |  uint32  | uint32 |  uint32  |   var    |
 // +---------+----------+-----------+----------+--------+----------+----------+
 
 // MaxNumArguments is the maximum number of the arguments.
@@ -20,9 +20,9 @@ const MaxNumArguments = 1024
 const (
 	cryptoKeySize  = 32
 	offsetNumArgs  = 32
-	offsetArgsSize = 32 + 4
-	offsetChecksum = 32 + 4 + 4
-	offsetFirstArg = 32 + 4 + 4 + 4
+	offsetArgsSize = 32 + 2
+	offsetChecksum = 32 + 2 + 4
+	offsetFirstArg = 32 + 2 + 4 + 4
 )
 
 // Arg contains the id and data about argument.
@@ -47,8 +47,8 @@ func Encode(args ...*Arg) ([]byte, error) {
 	buffer.Write(key)
 	// write the number of arguments
 	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, uint32(len(args))) // #nosec G115
-	buffer.Write(buf)
+	binary.LittleEndian.PutUint16(buf, uint16(len(args))) // #nosec G115
+	buffer.Write(buf[:2])
 	// calculate the total size of the arguments
 	var argsSize uint32
 	for i := 0; i < len(args); i++ {
@@ -107,7 +107,7 @@ func Decode(stub []byte) ([]*Arg, error) {
 	if checksum != expected {
 		return nil, errors.New("invalid argument stub checksum")
 	}
-	numArgs := binary.LittleEndian.Uint32(stub[offsetNumArgs:])
+	numArgs := binary.LittleEndian.Uint16(stub[offsetNumArgs:])
 	argsSize := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
 	if numArgs == 0 && argsSize == 0 {
 		return nil, nil

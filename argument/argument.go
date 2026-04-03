@@ -53,13 +53,13 @@ func Encode(args ...*Arg) ([]byte, error) {
 	var argsSize uint32
 	for i := 0; i < len(args); i++ {
 		if args[i] == nil {
-			return nil, errors.New("appear nil argument")
+			return nil, fmt.Errorf("argument %d is nil", i)
 		}
 		argsSize += 4 + 4 + uint32(len(args[i].Data)) // #nosec G115
 	}
 	binary.LittleEndian.PutUint32(buf, argsSize)
 	buffer.Write(buf)
-	// reverse space for checksum
+	// reserve space for checksum
 	buffer.Write(buf)
 	// write arguments
 	buffer.Grow(int(argsSize))

@@ -48,7 +48,7 @@ func TestEncode(t *testing.T) {
 
 	t.Run("nil argument", func(t *testing.T) {
 		stub, err := Encode(nil)
-		require.EqualError(t, err, "appear nil argument")
+		require.EqualError(t, err, "argument 0 is nil")
 		require.Nil(t, stub)
 	})
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/For-ACGN/monkey"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +35,8 @@ func TestEncode(t *testing.T) {
 		argLen := len(arg0.Data) + len(arg1.Data)
 		expected := header + argSize + argLen
 		require.Len(t, stub, expected)
+
+		spew.Dump(stub)
 	})
 
 	t.Run("too many arguments", func(t *testing.T) {
@@ -153,11 +156,7 @@ func TestDecode(t *testing.T) {
 		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0)
 		binary.LittleEndian.PutUint32(stub[offsetArgsSize:], 1234)
 
-		var checksum uint32
-		for _, b := range stub[:offsetChecksum] {
-			checksum += checksum << 1
-			checksum += uint32(b)
-		}
+		checksum := calculateChecksum(stub[:offsetChecksum])
 		buf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(buf, checksum)
 		copy(stub[offsetChecksum:], buf)
@@ -177,11 +176,7 @@ func TestDecode(t *testing.T) {
 
 		binary.LittleEndian.PutUint32(stub[offsetNumArgs:], 0xFFFFFFFF)
 
-		var checksum uint32
-		for _, b := range stub[:offsetChecksum] {
-			checksum += checksum << 1
-			checksum += uint32(b)
-		}
+		checksum := calculateChecksum(stub[:offsetChecksum])
 		buf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(buf, checksum)
 		copy(stub[offsetChecksum:], buf)

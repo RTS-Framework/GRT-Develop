@@ -59,13 +59,7 @@ func Encode(args ...*Arg) ([]byte, error) {
 	}
 	binary.LittleEndian.PutUint32(buf, argsSize)
 	buffer.Write(buf)
-	// calculate header checksum
-	var checksum uint32
-	for _, b := range buffer.Bytes() {
-		checksum += checksum << 1
-		checksum += uint32(b)
-	}
-	binary.LittleEndian.PutUint32(buf, checksum)
+	// reverse space for checksum
 	buffer.Write(buf)
 	// write arguments
 	buffer.Grow(int(argsSize))
@@ -87,9 +81,13 @@ func Encode(args ...*Arg) ([]byte, error) {
 		// write argument data
 		buffer.Write(data)
 	}
-	output := buffer.Bytes()
-	encryptStub(output)
-	return output, nil
+	stub := buffer.Bytes()
+	xorHeader(stub)
+	encryptStub(stub)
+	// calculate argument checksum
+	checksum := calculateChecksum(stub[offsetFirstArg:])
+	binary.LittleEndian.PutUint32(stub[offsetChecksum:], checksum)
+	return stub, nil
 }
 
 // Decode is used to decrypt and decode arguments from raw stub.
@@ -98,15 +96,13 @@ func Decode(stub []byte) ([]*Arg, error) {
 		return nil, errors.New("invalid argument stub")
 	}
 	// calculate checksum
-	var checksum uint32
-	for _, b := range stub[:offsetChecksum] {
-		checksum += checksum << 1
-		checksum += uint32(b)
-	}
+	checksum := calculateChecksum(stub[offsetFirstArg:])
 	expected := binary.LittleEndian.Uint32(stub[offsetChecksum:])
 	if checksum != expected {
 		return nil, errors.New("invalid argument stub checksum")
 	}
+	stub = bytes.Clone(stub)
+	xorHeader(stub)
 	numArgs := binary.LittleEndian.Uint16(stub[offsetNumArgs:])
 	argsSize := binary.LittleEndian.Uint32(stub[offsetArgsSize:])
 	if numArgs == 0 && argsSize == 0 {
@@ -118,7 +114,6 @@ func Decode(stub []byte) ([]*Arg, error) {
 	if numArgs > MaxNumArguments {
 		return nil, errors.New("invalid num argument")
 	}
-	stub = bytes.Clone(stub)
 	decryptStub(stub)
 	// decode arguments
 	args := make([]*Arg, 0, numArgs)
@@ -142,6 +137,14 @@ func Decode(stub []byte) ([]*Arg, error) {
 		rem -= 4 + 4 + size
 	}
 	return args, nil
+}
+
+func xorHeader(stub []byte) {
+	data := stub[offsetNumArgs:offsetChecksum]
+	key := stub[:cryptoKeySize]
+	for i := 0; i < len(data); i++ {
+		data[i] = data[i] ^ key[i%len(key)]
+	}
 }
 
 func encryptStub(stub []byte) {
@@ -190,6 +193,21 @@ func decryptStub(stub []byte) {
 		ctr++
 		last = xorShift32(last)
 	}
+}
+
+func calculateChecksum(data []byte) uint32 {
+	var crc uint32 = 0xFFFFFFFF
+	for i := 0; i < len(data); i++ {
+		crc ^= uint32(data[i])
+		for j := 0; j < 8; j++ {
+			if crc&1 != 0 {
+				crc = (crc >> 1) ^ 0xEDB88320
+			} else {
+				crc >>= 1
+			}
+		}
+	}
+	return crc ^ 0xFFFFFFFF
 }
 
 func xorShift32(seed uint32) uint32 {

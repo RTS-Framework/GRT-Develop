@@ -82,6 +82,14 @@ type SMStatus struct {
 	NumPanic   int64 `json:"num_panic"`
 }
 
+// SDStatus contains status about shield.
+type SDStatus struct {
+	EntryPoint    uintptr `json:"entry_point"`
+	BaseAddress   uintptr `json:"base_address"`
+	IsPreInjected BOOL    `json:"is_pre_injected"`
+	IsAllocated   BOOL    `json:"is_allocated"`
+}
+
 // BOOL is an int32 for structure align.
 type BOOL int32
 

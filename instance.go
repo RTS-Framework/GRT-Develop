@@ -1,6 +1,8 @@
 package develop
 
 import (
+	"bytes"
+
 	"github.com/RTS-Framework/GRT-Develop/argument"
 	"github.com/RTS-Framework/GRT-Develop/option"
 	"github.com/RTS-Framework/GRT-Develop/ptrtable"
@@ -41,6 +43,9 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	instance := append(template, stub...)
-	return instance, nil
+	instance := bytes.NewBuffer(nil)
+	instance.Grow(len(template) + len(stub))
+	instance.Write(template)
+	instance.Write(stub)
+	return instance.Bytes(), nil
 }

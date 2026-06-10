@@ -14,6 +14,7 @@ type Metrics struct {
 	Detector DTStatus `json:"detector"`
 	Watchdog WDStatus `json:"watchdog"`
 	Sysmon   SMStatus `json:"sysmon"`
+	Shield   SDStatus `json:"shield"`
 }
 
 // LTStatus contains status about library tracker.

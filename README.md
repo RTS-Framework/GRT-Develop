@@ -1,34 +1,25 @@
 # GRT-Develop
-A package for deep customization of Gleam-RT. 
+A package for deep customization of Gleam-RT.
 
-## option and argument
-
+## Create Instance
 ```go
 package main
 
 import (
     "fmt"
     "os"
-
+    
+    "github.com/RTS-Framework/GRT-Develop"
     "github.com/RTS-Framework/GRT-Develop/argument"
-    "github.com/RTS-Framework/GRT-Develop/option"
-    "github.com/RTS-Framework/GRT-Develop/shield"
 )
 
 func main() {
     template, err := os.ReadFile("Gleam-RT.bin")
     checkError(err)
-
-    var (
-        shieldInst []byte
-        decoyInst  []byte
-    ) 
-    template, err = shield.Set(template, shieldInst, decoyInst)
-    checkError(err)
-
-    opts := option.Options{
-        ImagePinningHash:    option.Hash("test.exe"),
-        ShieldModuleHash:    option.Hash("test.dll"),
+    
+    opts := develop.Options{
+        ImagePinningName:    "test.exe",
+        ShieldModuleName:    "test.dll",
         ShieldEntryPoint:    0x1234,
         EnableSecurityMode:  false,
         DisableDetector:     false,
@@ -37,23 +28,19 @@ func main() {
         NotEraseInstruction: false,
         NotAdjustProtect:    false,
         TrackCurrentThread:  false,
+        
+        Shield: []byte("test shield"),
+        Decoy:  []byte("test decoy"),
+        
+        Arguments: []*argument.Arg{
+            {ID: 1, Data: []byte("test1")},
+            {ID: 2, Data: []byte("test2")},
+        },
     }
-    template, err = option.Set(template, &opts)
+    instance, err := develop.Instantiate(template, &opts)
     checkError(err)
-
-    arg1 := &argument.Arg{
-        ID:   0,
-        Data: []byte("arg1"),
-    }
-    arg2 := &argument.Arg{
-        ID:   1,
-        Data: []byte("arg2"),
-    }
-    stub, err := argument.Encode(arg1, arg2)
-    checkError(err)
-
-    output := append(template, stub...)
-    err = os.WriteFile("output.bin", output, 0600)
+    
+    err = os.WriteFile("instance.bin", instance, 0600)
     checkError(err)
 }
 
@@ -64,3 +51,16 @@ func checkError(err error) {
     }
 }
 ```
+
+## Disclaimer
+This project is developed solely for security research, educational purposes, and authorized penetration testing.\
+Any use for illegal activities, unauthorized access to computer systems, or malicious purposes is strictly prohibited.
+
+By using this project, you agree that:
+
+1. You will only use it in environments you own or have explicit authorization to test.
+2. You are solely responsible for ensuring compliance with all applicable local, state, national, and international laws and regulations.
+3. The authors and contributors assume no liability and are not responsible for any misuse or damage ca +used by this project.
+4. You understand that unauthorized use of computer systems is a criminal offense in most jurisdictions
+
+This software is provided "as is" without warranty of any kind, express or implied. Use at your own risk.

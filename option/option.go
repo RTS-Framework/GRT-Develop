@@ -154,22 +154,24 @@ func Get(instance []byte, offset int) (*Options, error) {
 		ImagePinningHash:    binary.LittleEndian.Uint64(stub[optOffsetImagePinningHash:]),
 		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[optOffsetShieldModuleHash:]),
 		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[optOffsetShieldEntryPoint:]),
-		EnableSecurityMode:  stub[optOffsetEnableSecurityMode] != 0,
-		DisableDetector:     stub[optOffsetDisableDetector] != 0,
-		DisableWatchdog:     stub[optOffsetDisableWatchdog] != 0,
-		DisableSysmon:       stub[optOffsetDisableSysmon] != 0,
-		NotEraseInstruction: stub[optOffsetNotEraseInstruction] != 0,
-		NotAdjustProtect:    stub[optOffsetNotAdjustProtect] != 0,
-		TrackCurrentThread:  stub[optOffsetTrackCurrentThread] != 0,
+		EnableSecurityMode:  stub[optOffsetEnableSecurityMode] == 0,
+		DisableDetector:     stub[optOffsetDisableDetector] == 0,
+		DisableWatchdog:     stub[optOffsetDisableWatchdog] == 0,
+		DisableSysmon:       stub[optOffsetDisableSysmon] == 0,
+		NotEraseInstruction: stub[optOffsetNotEraseInstruction] == 0,
+		NotAdjustProtect:    stub[optOffsetNotAdjustProtect] == 0,
+		TrackCurrentThread:  stub[optOffsetTrackCurrentThread] == 0,
 	}
 	return &opts, nil
 }
 
 func boolToByte(b bool) byte {
 	if b {
-		return 1
+		return 0
 	}
-	return 0
+	v := make([]byte, 1)
+	_, _ = rand.Read(v)
+	return v[0] | 1
 }
 
 func xor(data, key []byte) {

@@ -48,13 +48,13 @@ type Options struct {
 	TrackCurrentThread bool `toml:"track_current_thread" json:"track_current_thread"`
 
 	// set shield instruction to shield stub.
-	Shield []byte `json:"shield"`
+	Shield []byte `toml:"shield" json:"shield"`
 
 	// set decoy instruction to shield stub.
-	Decoy []byte `json:"decoy"`
+	Decoy []byte `toml:"decoy" json:"decoy"`
 
 	// set argument to template tail.
-	Arguments []*argument.Arg `json:"arguments"`
+	Arguments []*argument.Arg `toml:"arguments" json:"arguments"`
 }
 
 // Instantiate is used to instantiate runtime from template.
@@ -101,9 +101,10 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	return instance.Bytes(), nil
 }
 
+// refence ImagePinningHash and ShieldModuleHash in option.Options.
 func hashMod(module string) uint64 {
 	if module == "" {
-		return 0
+		return 0x0000
 	}
 	if module == MainModule {
 		return 0x0001

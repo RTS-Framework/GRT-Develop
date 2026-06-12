@@ -39,8 +39,17 @@ func init() {
 func TestInstantiate(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		opts := Options{
+			ImagePinningName: "test.exe",
+			ShieldModuleName: MainModule,
+			ShieldEntryPoint: 0x4000,
+
 			Shield: []byte("test shield"),
 			Decoy:  []byte("test decoy"),
+
+			Arguments: []*argument.Arg{
+				{ID: 1, Data: []byte("test1")},
+				{ID: 2, Data: []byte("test2")},
+			},
 		}
 
 		instance, err := Instantiate(template, &opts)

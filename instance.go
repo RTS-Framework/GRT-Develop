@@ -9,13 +9,51 @@ import (
 	"github.com/RTS-Framework/GRT-Develop/shield"
 )
 
+// MainModule is used to set ShieldModuleHash with 0x0001 for use "main.exe".
+const MainModule = "<main>"
+
 // Options contains the options for instantiate runtime.
 type Options struct {
+	// runtime will not initialize when the exe name is not expected.
+	// if zero, runtime will skip this detection.
+	ImagePinningName string `toml:"image_pinning_name" json:"image_pinning_name"`
+
+	// the module name of the pre-injected shield in.
+	ShieldModuleName string `toml:"shield_module_name" json:"shield_module_name"`
+
+	// the RVA of the pre-injected shield in the module.
+	ShieldEntryPoint uint64 `toml:"shield_entry_point" json:"shield_entry_point"`
+
+	// detect environment when initialize runtime, if not safe, stop at once.
+	EnableSecurityMode bool `toml:"enable_security_mode" json:"enable_security_mode"`
+
+	// disable detector for test or debug.
+	DisableDetector bool `toml:"disable_detector" json:"disable_detector"`
+
+	// disable watchdog for implement single thread model.
+	// it will overwrite the control from upper module.
+	DisableWatchdog bool `toml:"disable_watchdog" json:"disable_watchdog"`
+
+	// disable sysmon for implement single thread model.
+	DisableSysmon bool `toml:"disable_sysmon" json:"disable_sysmon"`
+
+	// not erase runtime instructions after call Runtime_M.Exit.
+	NotEraseInstruction bool `toml:"not_erase_instruction" json:"not_erase_instruction"`
+
+	// not adjust current memory page protect for erase runtime.
+	NotAdjustProtect bool `toml:"not_adjust_protect" json:"not_adjust_protect"`
+
+	// track current thread for test or debug mode.
+	// it maybe improved the single thread model.
+	TrackCurrentThread bool `toml:"track_current_thread" json:"track_current_thread"`
+
+	// set shield instruction to shield stub.
 	Shield []byte `json:"shield"`
-	Decoy  []byte `json:"decoy"`
 
-	option.Options
+	// set decoy instruction to shield stub.
+	Decoy []byte `json:"decoy"`
 
+	// set argument to template tail.
 	Arguments []*argument.Arg `json:"arguments"`
 }
 
@@ -35,7 +73,20 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	template, err = option.Set(template, &opts.Options)
+	// build option
+	opt := option.Options{
+		ImagePinningHash:    hashMod(opts.ImagePinningName),
+		ShieldModuleHash:    hashMod(opts.ShieldModuleName),
+		ShieldEntryPoint:    opts.ShieldEntryPoint,
+		EnableSecurityMode:  opts.EnableSecurityMode,
+		DisableDetector:     opts.DisableDetector,
+		DisableWatchdog:     opts.DisableWatchdog,
+		DisableSysmon:       opts.DisableSysmon,
+		NotEraseInstruction: opts.NotEraseInstruction,
+		NotAdjustProtect:    opts.NotAdjustProtect,
+		TrackCurrentThread:  opts.TrackCurrentThread,
+	}
+	template, err = option.Set(template, &opt)
 	if err != nil {
 		return nil, err
 	}
@@ -48,4 +99,14 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	instance.Write(template)
 	instance.Write(stub)
 	return instance.Bytes(), nil
+}
+
+func hashMod(module string) uint64 {
+	if module == "" {
+		return 0
+	}
+	if module == MainModule {
+		return 0x0001
+	}
+	return option.Hash(module)
 }

@@ -5,6 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
+
+	"github.com/RTS-Framework/GRT-Develop/option"
+	"github.com/RTS-Framework/GRT-Develop/ptrtable"
 )
 
 // +------------+---------+-------------+--------+------------+-------+
@@ -21,23 +24,26 @@ const (
 	StubSize = 8 * 1024
 )
 
-const xorKeySize = 32
+const (
+	stubSuffix = ptrtable.StubSize + option.StubSize
+	xorKeySize = 32
+)
 
 // Set is used to encrypt shield and decoy, then write to runtime shield stub.
 func Set(template, shield, decoy []byte) ([]byte, error) {
-	if len(template) < StubSize {
+	if len(template) < StubSize+stubSuffix {
 		return nil, errors.New("invalid runtime template")
 	}
 	if 1+xorKeySize+2+len(shield)+2+len(decoy) > StubSize {
 		return nil, errors.New("shield or decoy is too large")
 	}
 	// locate shield stub in runtime template
-	stub := bytes.Repeat([]byte{0x00}, StubSize)
-	stub[0] = StubMagic
-	offset := bytes.LastIndex(template, stub)
-	if offset == -1 {
+	offset := len(template) - (StubSize + stubSuffix)
+	if template[offset] != StubMagic {
 		return nil, errors.New("invalid runtime shield stub")
 	}
+	stub := bytes.Repeat([]byte{0x00}, StubSize)
+	stub[0] = StubMagic
 	// generate xor key
 	key := make([]byte, xorKeySize)
 	_, err := rand.Read(key)

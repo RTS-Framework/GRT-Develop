@@ -19,7 +19,7 @@ var (
 func init() {
 	offset = 256
 	inst := bytes.Repeat([]byte{0xFF}, offset)
-	stub := bytes.Repeat([]byte{0x00}, StubSize)
+	stub := bytes.Repeat([]byte{0x00}, StubSize+stubSuffix)
 	stub[0] = StubMagic
 	template = append(inst, stub...)
 }
@@ -101,7 +101,7 @@ func TestSet(t *testing.T) {
 	})
 
 	t.Run("invalid stub", func(t *testing.T) {
-		tpl := make([]byte, StubSize+offset)
+		tpl := make([]byte, len(template))
 
 		output, err := Set(tpl, nil, nil)
 		require.EqualError(t, err, "invalid runtime shield stub")

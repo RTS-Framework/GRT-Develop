@@ -91,6 +91,12 @@ type SDStatus struct {
 	IsAllocated   BOOL    `json:"is_allocated"`
 }
 
+// constant for use BOOL easily.
+const (
+	TRUE  = BOOL(1)
+	FALSE = BOOL(0)
+)
+
 // BOOL is an int32 for structure align.
 type BOOL int32
 

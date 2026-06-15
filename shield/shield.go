@@ -30,6 +30,7 @@ const (
 )
 
 // Set is used to encrypt shield and decoy, then write to runtime shield stub.
+// if shield or decoy is empty. it will reuse the old shield or decoy in stub.
 func Set(template, shield, decoy []byte) ([]byte, error) {
 	if len(template) < StubSize+stubSuffix {
 		return nil, errors.New("invalid runtime template")
@@ -42,11 +43,23 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	if template[offset] != StubMagic {
 		return nil, errors.New("invalid runtime shield stub")
 	}
+	// get old shield and decoy
+	oldShield, oldDecoy, err := Get(template, offset)
+	if err != nil {
+		return nil, err
+	}
+	if len(shield) < 1 {
+		shield = oldShield
+	}
+	if len(decoy) < 1 {
+		decoy = oldDecoy
+	}
+	// build new stub
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
 	// generate xor key
 	key := make([]byte, xorKeySize)
-	_, err := rand.Read(key)
+	_, err = rand.Read(key)
 	if err != nil {
 		return nil, errors.New("failed to generate key")
 	}

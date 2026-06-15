@@ -3,6 +3,7 @@ package shield
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"testing"
 
@@ -14,6 +15,9 @@ import (
 var (
 	template []byte
 	offset   int
+
+	builtinShield = []byte("builtin shield")
+	builtinDecoy  = []byte("builtin decoy")
 )
 
 func init() {
@@ -21,7 +25,12 @@ func init() {
 	inst := bytes.Repeat([]byte{0xFF}, offset)
 	stub := bytes.Repeat([]byte{0x00}, StubSize+stubSuffix)
 	stub[0] = StubMagic
-	template = append(inst, stub...)
+	data := append(inst, stub...)
+	var err error
+	template, err = Set(data, builtinShield, builtinDecoy)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestSet(t *testing.T) {
@@ -46,8 +55,8 @@ func TestSet(t *testing.T) {
 
 		s, d, err := Get(output, offset)
 		require.NoError(t, err)
-		require.Empty(t, s)
-		require.Empty(t, d)
+		require.Equal(t, builtinShield, s)
+		require.Equal(t, builtinDecoy, d)
 
 		spew.Dump(output)
 	})
@@ -60,7 +69,7 @@ func TestSet(t *testing.T) {
 
 		s, d, err := Get(output, offset)
 		require.NoError(t, err)
-		require.Empty(t, s)
+		require.Equal(t, builtinShield, s)
 		require.Equal(t, decoy, d)
 	})
 
@@ -73,7 +82,7 @@ func TestSet(t *testing.T) {
 		s, d, err := Get(output, offset)
 		require.NoError(t, err)
 		require.Equal(t, shield, s)
-		require.Empty(t, d)
+		require.Equal(t, builtinDecoy, d)
 	})
 
 	t.Run("invalid template", func(t *testing.T) {
@@ -105,6 +114,15 @@ func TestSet(t *testing.T) {
 
 		output, err := Set(tpl, nil, nil)
 		require.EqualError(t, err, "invalid runtime shield stub")
+		require.Nil(t, output)
+	})
+
+	t.Run("invalid shield size", func(t *testing.T) {
+		invalid := bytes.Clone(template)
+		binary.LittleEndian.PutUint16(invalid[offset+33:], 0xFFFF)
+
+		output, err := Set(invalid, nil, nil)
+		require.EqualError(t, err, "invalid shield size in stub")
 		require.Nil(t, output)
 	})
 

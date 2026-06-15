@@ -62,12 +62,9 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
 	}
-	var err error
-	if len(opts.Shield) != 0 {
-		template, err = shield.Set(template, opts.Shield, opts.Decoy)
-		if err != nil {
-			return nil, err
-		}
+	template, err := shield.Set(template, opts.Shield, opts.Decoy)
+	if err != nil {
+		return nil, err
 	}
 	template, err = ptrtable.Set(template)
 	if err != nil {

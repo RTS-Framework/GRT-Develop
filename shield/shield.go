@@ -22,24 +22,24 @@ const (
 
 	// StubSize is the shield stub total size at the runtime tail.
 	StubSize = 8 * 1024
+
+	// StubSuffix is used to calculate fake template size for generator.
+	StubSuffix = ptrtable.StubSize + option.StubSize
 )
 
-const (
-	stubSuffix = ptrtable.StubSize + option.StubSize
-	xorKeySize = 32
-)
+const xorKeySize = 32
 
 // Set is used to encrypt shield and decoy, then write to runtime shield stub.
 // if shield or decoy is empty. it will reuse the old shield or decoy in stub.
 func Set(template, shield, decoy []byte) ([]byte, error) {
-	if len(template) < StubSize+stubSuffix {
+	if len(template) < StubSize+StubSuffix {
 		return nil, errors.New("invalid runtime template")
 	}
 	if 1+xorKeySize+2+len(shield)+2+len(decoy) > StubSize {
 		return nil, errors.New("shield or decoy is too large")
 	}
 	// locate shield stub in runtime template
-	offset := len(template) - (StubSize + stubSuffix)
+	offset := len(template) - (StubSize + StubSuffix)
 	if template[offset] != StubMagic {
 		return nil, errors.New("invalid runtime shield stub")
 	}

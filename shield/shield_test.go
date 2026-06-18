@@ -23,7 +23,7 @@ var (
 func init() {
 	offset = 256
 	inst := bytes.Repeat([]byte{0xFF}, offset)
-	stub := bytes.Repeat([]byte{0x00}, StubSize+stubSuffix)
+	stub := bytes.Repeat([]byte{0x00}, StubSize+StubSuffix)
 	stub[0] = StubMagic
 	data := append(inst, stub...)
 	var err error

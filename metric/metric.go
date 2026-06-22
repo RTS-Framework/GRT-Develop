@@ -7,88 +7,88 @@ import (
 
 // Metrics contains status about runtime submodules.
 type Metrics struct {
-	Library  LTStatus `json:"library"`
-	Memory   MTStatus `json:"memory"`
-	Thread   TTStatus `json:"thread"`
-	Resource RTStatus `json:"resource"`
-	Detector DTStatus `json:"detector"`
-	Watchdog WDStatus `json:"watchdog"`
-	Sysmon   SMStatus `json:"sysmon"`
-	Shield   SDStatus `json:"shield"`
+	Library  LTStatus
+	Memory   MTStatus
+	Thread   TTStatus
+	Resource RTStatus
+	Detector DTStatus
+	Watchdog WDStatus
+	Sysmon   SMStatus
+	Shield   SDStatus
 }
 
 // LTStatus contains status about library tracker.
 type LTStatus struct {
-	NumModules    int64 `json:"num_modules"`
-	NumProcedures int64 `json:"num_procedures"`
+	NumModules    int64
+	NumProcedures int64
 }
 
 // MTStatus contains status about memory tracker.
 type MTStatus struct {
-	NumGlobals int64 `json:"num_globals"`
-	NumLocals  int64 `json:"num_locals"`
-	NumBlocks  int64 `json:"num_blocks"`
-	NumRegions int64 `json:"num_regions"`
-	NumPages   int64 `json:"num_pages"`
-	NumHeaps   int64 `json:"num_heaps"`
+	NumGlobals int64
+	NumLocals  int64
+	NumBlocks  int64
+	NumRegions int64
+	NumPages   int64
+	NumHeaps   int64
 }
 
 // TTStatus contains status about thread tracker.
 type TTStatus struct {
-	NumThreads  int64 `json:"num_threads"`
-	NumTLSIndex int64 `json:"num_tls_index"`
-	NumSuspend  int64 `json:"num_suspend"`
+	NumThreads  int64
+	NumTLSIndex int64
+	NumSuspend  int64
 }
 
 // RTStatus contains status about resource tracker.
 type RTStatus struct {
-	NumMutexs         int64 `json:"num_mutexs"`
-	NumEvents         int64 `json:"num_events"`
-	NumSemaphores     int64 `json:"num_semaphores"`
-	NumWaitableTimers int64 `json:"num_waitable_timers"`
-	NumFiles          int64 `json:"num_files"`
-	NumDirectories    int64 `json:"num_directories"`
-	NumIOCPs          int64 `json:"num_iocps"`
-	NumRegKeys        int64 `json:"num_reg_keys"`
-	NumSockets        int64 `json:"num_sockets"`
+	NumMutexs         int64
+	NumEvents         int64
+	NumSemaphores     int64
+	NumWaitableTimers int64
+	NumFiles          int64
+	NumDirectories    int64
+	NumIOCPs          int64
+	NumRegKeys        int64
+	NumSockets        int64
 }
 
 // DTStatus contains status about detector.
 type DTStatus struct {
-	IsEnabled        BOOL  `json:"is_enabled"`
-	HasDebugger      BOOL  `json:"has_debugger"`
-	HasMemoryScanner BOOL  `json:"has_memory_scanner"`
-	InSandbox        BOOL  `json:"in_sandbox"`
-	InEmulator       BOOL  `json:"in_emulator"`
-	InVirtualMachine BOOL  `json:"in_virtual_machine"`
-	IsAccelerated    BOOL  `json:"is_accelerated"`
-	SafeRank         int32 `json:"safe_rank"`
+	IsEnabled        BOOL
+	HasDebugger      BOOL
+	HasMemoryScanner BOOL
+	InSandbox        BOOL
+	InEmulator       BOOL
+	InVirtualMachine BOOL
+	IsAccelerated    BOOL
+	SafeRank         int32
 }
 
 // WDStatus contains status about watchdog.
 type WDStatus struct {
-	IsEnabled BOOL  `json:"is_enabled"`
-	Reserved  int32 `json:"-"`
-	NumKick   int64 `json:"num_kick"`
-	NumNormal int64 `json:"num_normal"`
-	NumReset  int64 `json:"num_reset"`
+	IsEnabled BOOL
+	Reserved  int32
+	NumKick   int64
+	NumNormal int64
+	NumReset  int64
 }
 
 // SMStatus contains status about sysmon.
 type SMStatus struct {
-	IsEnabled  BOOL  `json:"is_enabled"`
-	Reserved   int32 `json:"-"`
-	NumNormal  int64 `json:"num_normal"`
-	NumRecover int64 `json:"num_recover"`
-	NumPanic   int64 `json:"num_panic"`
+	IsEnabled  BOOL
+	Reserved   int32
+	NumNormal  int64
+	NumRecover int64
+	NumPanic   int64
 }
 
 // SDStatus contains status about shield.
 type SDStatus struct {
-	EntryPoint    uintptr `json:"entry_point"`
-	BaseAddress   uintptr `json:"base_address"`
-	IsPreInjected BOOL    `json:"is_pre_injected"`
-	IsAllocated   BOOL    `json:"is_allocated"`
+	EntryPoint    uintptr
+	BaseAddress   uintptr
+	IsPreInjected BOOL
+	IsAllocated   BOOL
 }
 
 // constant for use BOOL easily.

@@ -27,6 +27,13 @@ const (
 	StubSuffix = ptrtable.StubSize + option.StubSize
 )
 
+// about shield source
+const (
+	srcPreInjected = iota + 1
+	srcShieldStub
+	srcExternal
+)
+
 const xorKeySize = 32
 
 // Set is used to encrypt shield and decoy, then write to runtime shield stub.
@@ -145,4 +152,18 @@ func xor(data, key []byte) []byte {
 		output[i] = data[i] ^ key[i%len(key)]
 	}
 	return output
+}
+
+// ConvertSource is used to convert raw shield source.
+func ConvertSource(src int64) string {
+	switch src {
+	case srcPreInjected:
+		return "pre-injected"
+	case srcShieldStub:
+		return "shield stub"
+	case srcExternal:
+		return "external"
+	default:
+		return "unknown"
+	}
 }

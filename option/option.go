@@ -29,13 +29,14 @@ const (
 	optOffsetImagePinningHash    = optOffset + 0
 	optOffsetShieldModuleHash    = optOffset + 8
 	optOffsetShieldEntryPoint    = optOffset + 16
-	optOffsetEnableSecurityMode  = optOffset + 24
-	optOffsetDisableDetector     = optOffset + 25
-	optOffsetDisableWatchdog     = optOffset + 26
-	optOffsetDisableSysmon       = optOffset + 27
-	optOffsetNotEraseInstruction = optOffset + 28
-	optOffsetNotAdjustProtect    = optOffset + 29
-	optOffsetTrackCurrentThread  = optOffset + 30
+	optOffsetShieldMemAddress    = optOffset + 24
+	optOffsetEnableSecurityMode  = optOffset + 32
+	optOffsetDisableDetector     = optOffset + 33
+	optOffsetDisableWatchdog     = optOffset + 34
+	optOffsetDisableSysmon       = optOffset + 35
+	optOffsetNotEraseInstruction = optOffset + 36
+	optOffsetNotAdjustProtect    = optOffset + 37
+	optOffsetTrackCurrentThread  = optOffset + 38
 )
 
 const (
@@ -57,7 +58,11 @@ type Options struct {
 	ShieldModuleHash uint64 `toml:"shield_module_hash" json:"shield_module_hash"`
 
 	// the RVA of the pre-injected shield in the module.
+	// if ShieldModuleHash is not zero, it must be set.
 	ShieldEntryPoint uint64 `toml:"shield_entry_point" json:"shield_entry_point"`
+
+	// the shield memory address that external program provide.
+	ShieldMemAddress uint64 `toml:"shield_mem_address" json:"shield_mem_address"`
 
 	// detect environment when initialize runtime, if not safe, stop at once.
 	EnableSecurityMode bool `toml:"enable_security_mode" json:"enable_security_mode"`
@@ -110,6 +115,7 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 	binary.LittleEndian.PutUint64(stub[optOffsetImagePinningHash:], opts.ImagePinningHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldModuleHash:], opts.ShieldModuleHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldEntryPoint:], opts.ShieldEntryPoint)
+	binary.LittleEndian.PutUint64(stub[optOffsetShieldMemAddress:], opts.ShieldMemAddress)
 	stub[optOffsetEnableSecurityMode] = boolToByte(opts.EnableSecurityMode)
 	stub[optOffsetDisableDetector] = boolToByte(opts.DisableDetector)
 	stub[optOffsetDisableWatchdog] = boolToByte(opts.DisableWatchdog)
@@ -154,6 +160,7 @@ func Get(instance []byte, offset int) (*Options, error) {
 		ImagePinningHash:    binary.LittleEndian.Uint64(stub[optOffsetImagePinningHash:]),
 		ShieldModuleHash:    binary.LittleEndian.Uint64(stub[optOffsetShieldModuleHash:]),
 		ShieldEntryPoint:    binary.LittleEndian.Uint64(stub[optOffsetShieldEntryPoint:]),
+		ShieldMemAddress:    binary.LittleEndian.Uint64(stub[optOffsetShieldMemAddress:]),
 		EnableSecurityMode:  stub[optOffsetEnableSecurityMode] == 0,
 		DisableDetector:     stub[optOffsetDisableDetector] == 0,
 		DisableWatchdog:     stub[optOffsetDisableWatchdog] == 0,
@@ -193,6 +200,10 @@ func Flag(opts *Options) {
 	flag.Uint64Var(
 		&opts.ShieldEntryPoint, "grt-sep", 0,
 		"set the rva about the shield in module",
+	)
+	flag.Uint64Var(
+		&opts.ShieldMemAddress, "grt-sma", 0,
+		"set the shield absolute memory address",
 	)
 	flag.BoolVar(
 		&opts.EnableSecurityMode, "grt-esm", false,

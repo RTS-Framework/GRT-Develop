@@ -22,7 +22,11 @@ type Options struct {
 	ShieldModuleName string `toml:"shield_module_name" json:"shield_module_name"`
 
 	// the RVA of the pre-injected shield in the module.
+	// if ShieldModuleName is not empty, it must be set.
 	ShieldEntryPoint uint64 `toml:"shield_entry_point" json:"shield_entry_point"`
+
+	// the shield memory address that external program provide.
+	ShieldMemAddress uint64 `toml:"shield_mem_address" json:"shield_mem_address"`
 
 	// detect environment when initialize runtime, if not safe, stop at once.
 	EnableSecurityMode bool `toml:"enable_security_mode" json:"enable_security_mode"`
@@ -75,6 +79,7 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 		ImagePinningHash:    hashMod(opts.ImagePinningName),
 		ShieldModuleHash:    hashMod(opts.ShieldModuleName),
 		ShieldEntryPoint:    opts.ShieldEntryPoint,
+		ShieldMemAddress:    opts.ShieldMemAddress,
 		EnableSecurityMode:  opts.EnableSecurityMode,
 		DisableDetector:     opts.DisableDetector,
 		DisableWatchdog:     opts.DisableWatchdog,

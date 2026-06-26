@@ -85,10 +85,9 @@ type SMStatus struct {
 
 // SDStatus contains status about shield.
 type SDStatus struct {
-	EntryPoint    uintptr
-	BaseAddress   uintptr
-	IsPreInjected BOOL
-	IsAllocated   BOOL
+	EntryPoint  uintptr
+	BaseAddress uintptr
+	Source      int64
 }
 
 // constant for use BOOL easily.

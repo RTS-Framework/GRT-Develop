@@ -30,7 +30,7 @@ func TestSet(t *testing.T) {
 			ImagePinningHash:    0x1234,
 			ShieldModuleHash:    0x5678,
 			ShieldEntryPoint:    0x9012,
-			ShieldMemAddress:    0x7FFA,
+			ShieldMemAddress:    0,
 			EnableSecurityMode:  true,
 			DisableDetector:     true,
 			DisableWatchdog:     true,
@@ -93,6 +93,36 @@ func TestSet(t *testing.T) {
 		require.Nil(t, output)
 	})
 
+	t.Run("option conflict", func(t *testing.T) {
+		opts := &Options{
+			ShieldModuleHash: 0x5678,
+			ShieldEntryPoint: 0,
+		}
+		output, err := Set(template, opts)
+		errStr := "shield entry point cannot be zero"
+		require.EqualError(t, err, errStr)
+		require.Nil(t, output)
+
+		opts = &Options{
+			ShieldModuleHash: 0x5678,
+			ShieldEntryPoint: 0x1234,
+			ShieldMemAddress: 0x7FFA,
+		}
+		output, err = Set(template, opts)
+		errStr = "shield module hash and address cannot be set at the same time"
+		require.EqualError(t, err, errStr)
+		require.Nil(t, output)
+
+		opts = &Options{
+			ShieldModuleHash: 0,
+			ShieldEntryPoint: 0x1234,
+		}
+		output, err = Set(template, opts)
+		errStr = "shield entry point must be with module hash"
+		require.EqualError(t, err, errStr)
+		require.Nil(t, output)
+	})
+
 	t.Run("failed to generate padding data", func(t *testing.T) {
 		patch := func(b []byte) (int, error) {
 			if len(b) == xorKeySize {
@@ -114,8 +144,8 @@ func TestGet(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		opts := &Options{
 			ImagePinningHash:    0x1234,
-			ShieldModuleHash:    0x5678,
-			ShieldEntryPoint:    0x9012,
+			ShieldModuleHash:    0,
+			ShieldEntryPoint:    0,
 			ShieldMemAddress:    0x7FFA,
 			EnableSecurityMode:  true,
 			DisableDetector:     true,

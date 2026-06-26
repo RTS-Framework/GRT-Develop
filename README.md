@@ -21,6 +21,7 @@ func main() {
         ImagePinningName:    "test.exe",
         ShieldModuleName:    "test.dll",
         ShieldEntryPoint:    0x1234,
+        ShieldMemAddress:    0,
         EnableSecurityMode:  false,
         DisableDetector:     false,
         DisableWatchdog:     false,

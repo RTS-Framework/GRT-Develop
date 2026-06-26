@@ -108,10 +108,22 @@ func Set(template []byte, opts *Options) ([]byte, error) {
 		return nil, errors.New("failed to generate key")
 	}
 	copy(stub[1:], key)
-	// write options to stub
+	// check option field conflict
 	if opts == nil {
 		opts = new(Options)
 	}
+	if opts.ShieldModuleHash != 0 {
+		if opts.ShieldEntryPoint == 0 {
+			return nil, errors.New("shield entry point cannot be zero")
+		}
+		if opts.ShieldMemAddress != 0 {
+			return nil, errors.New("shield module hash and address cannot be set at the same time")
+		}
+	}
+	if opts.ShieldModuleHash == 0 && opts.ShieldEntryPoint != 0 {
+		return nil, errors.New("shield entry point must be with module hash")
+	}
+	// write options to stub
 	binary.LittleEndian.PutUint64(stub[optOffsetImagePinningHash:], opts.ImagePinningHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldModuleHash:], opts.ShieldModuleHash)
 	binary.LittleEndian.PutUint64(stub[optOffsetShieldEntryPoint:], opts.ShieldEntryPoint)

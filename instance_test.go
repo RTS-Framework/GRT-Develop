@@ -42,7 +42,7 @@ func TestInstantiate(t *testing.T) {
 			ImagePinningName: "test.exe",
 			ShieldModuleName: MainModule,
 			ShieldEntryPoint: 0x4000,
-			ShieldMemAddress: 0x7FFA,
+			ShieldMemAddress: 0,
 
 			Shield: []byte("test shield"),
 			Decoy:  []byte("test decoy"),

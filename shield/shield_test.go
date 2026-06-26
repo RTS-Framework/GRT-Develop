@@ -242,3 +242,18 @@ func TestGet(t *testing.T) {
 		require.Nil(t, d)
 	})
 }
+
+func TestConvertSource(t *testing.T) {
+	for _, item := range []struct {
+		input  int64
+		output string
+	}{
+		{srcPreInjected, "pre-injected"},
+		{srcShieldStub, "shield stub"},
+		{srcExternal, "external"},
+		{1234, "unknown"},
+	} {
+		output := ConvertSource(item.input)
+		require.Equal(t, item.output, output)
+	}
+}

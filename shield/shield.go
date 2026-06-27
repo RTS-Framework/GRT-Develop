@@ -29,6 +29,13 @@ const (
 
 // about shield source
 const (
+	SourcePreInjected = "pre-injected"
+	SourceShieldStub  = "shield stub"
+	SourceExternal    = "external"
+	SourceUnknown     = "unknown"
+)
+
+const (
 	srcPreInjected = iota + 1
 	srcShieldStub
 	srcExternal
@@ -158,12 +165,12 @@ func xor(data, key []byte) []byte {
 func ConvertSource(src int64) string {
 	switch src {
 	case srcPreInjected:
-		return "pre-injected"
+		return SourcePreInjected
 	case srcShieldStub:
-		return "shield stub"
+		return SourceShieldStub
 	case srcExternal:
-		return "external"
+		return SourceExternal
 	default:
-		return "unknown"
+		return SourceUnknown
 	}
 }

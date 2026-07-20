@@ -75,11 +75,11 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	seed := make([]byte, seedSize)
 	_, err = rand.Read(seed)
 	if err != nil {
-		return nil, errors.New("failed to generate key")
+		return nil, errors.New("failed to generate seed")
 	}
 	// build stub
 	off := 1
-	// write xor key
+	// write seed
 	copy(stub[off:], seed)
 	off += seedSize
 	// write shield size
@@ -144,8 +144,8 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	stub := instance[offset:]
 	// skip magic
 	off := 1
-	// read xor key
-	key := stub[off : off+seedSize]
+	// read seed
+	seed := stub[off : off+seedSize]
 	off += seedSize
 	// read shield size
 	shieldSize := int(binary.LittleEndian.Uint16(stub[off:]))
@@ -167,7 +167,7 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	// read shuffled decoy
 	decoy = stub[off : off+decoySize]
 	// unshuffle shield and decoy
-	return unshuffle(shield, key), unshuffle(decoy, key), nil
+	return unshuffle(shield, seed), unshuffle(decoy, seed), nil
 }
 
 func unshuffle(data, seed []byte) []byte {
@@ -177,7 +177,7 @@ func unshuffle(data, seed []byte) []byte {
 	for i := len(buffer) - 1; i > 0; i-- {
 		s = xorShift64(s)
 	}
-	for i := 1; i < len(data); i++ {
+	for i := 1; i < len(buffer); i++ {
 		s = reverseXORShift64(s)
 		j := s % uint64(i+1)
 		t := buffer[i]

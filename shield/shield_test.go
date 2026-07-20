@@ -126,7 +126,7 @@ func TestSet(t *testing.T) {
 		require.Nil(t, output)
 	})
 
-	t.Run("failed to generate xor key", func(t *testing.T) {
+	t.Run("failed to generate seed", func(t *testing.T) {
 		patch := func(b []byte) (int, error) {
 			return 0, errors.New("monkey error")
 		}
@@ -137,7 +137,7 @@ func TestSet(t *testing.T) {
 		decoy := []byte("test decoy instruction")
 
 		output, err := Set(template, shield, decoy)
-		require.EqualError(t, err, "failed to generate key")
+		require.EqualError(t, err, "failed to generate seed")
 		require.Nil(t, output)
 	})
 

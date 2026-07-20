@@ -119,7 +119,7 @@ func TestSet(t *testing.T) {
 
 	t.Run("invalid shield size", func(t *testing.T) {
 		invalid := bytes.Clone(template)
-		binary.LittleEndian.PutUint16(invalid[offset+33:], 0xFFFF)
+		binary.LittleEndian.PutUint16(invalid[offset+9:], 0xFFFF)
 
 		output, err := Set(invalid, nil, nil)
 		require.EqualError(t, err, "invalid shield size in stub")
@@ -143,7 +143,7 @@ func TestSet(t *testing.T) {
 
 	t.Run("failed to generate padding data", func(t *testing.T) {
 		patch := func(b []byte) (int, error) {
-			if len(b) == xorKeySize {
+			if len(b) == seedSize {
 				b[0] = 0xFE
 				return len(b), nil
 			}
@@ -214,7 +214,7 @@ func TestGet(t *testing.T) {
 		require.NoError(t, err)
 
 		// set shield size to be too large
-		off := offset + 1 + xorKeySize
+		off := offset + 1 + seedSize
 		output[off+0] = 0xFF
 		output[off+1] = 0xFF
 
@@ -232,7 +232,7 @@ func TestGet(t *testing.T) {
 		require.NoError(t, err)
 
 		// set decoy size to be too large
-		off := offset + 1 + xorKeySize + 2 + len(shield)
+		off := offset + 1 + seedSize + 2 + len(shield)
 		output[off+0] = 0xFF
 		output[off+1] = 0xFF
 

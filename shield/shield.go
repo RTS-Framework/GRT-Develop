@@ -10,15 +10,15 @@ import (
 	"github.com/RTS-Framework/GRT-Develop/ptrtable"
 )
 
-// +------------+---------+-------------+--------+------------+-------+
-// | magic mark | xor key | shield size | shield | decoy size | decoy |
-// +------------+---------+-------------+--------+------------+-------+
-// |    0xFB    | 32 byte |   uint16    |   var  |   uint16   |  var  |
-// +------------+---------+-------------+--------+------------+-------+
+// +------------+--------+-------------+--------+------------+-------+
+// | magic mark |  seed  | shield size | shield | decoy size | decoy |
+// +------------+--------+-------------+--------+------------+-------+
+// |    0xFA    | uint64 |   uint16    |   var  |   uint16   |  var  |
+// +------------+--------+-------------+--------+------------+-------+
 
 const (
 	// StubMagic is the mark of shield stub.
-	StubMagic = 0xFB
+	StubMagic = 0xFA
 
 	// StubSize is the shield stub total size at the runtime tail.
 	StubSize = 8 * 1024
@@ -41,15 +41,15 @@ const (
 	srcExternal
 )
 
-const xorKeySize = 32
+const seedSize = 8
 
-// Set is used to encrypt shield and decoy, then write to runtime shield stub.
+// Set is used to obfuscate shield and decoy, then write to runtime shield stub.
 // if shield or decoy is empty. it will reuse the old shield or decoy in stub.
 func Set(template, shield, decoy []byte) ([]byte, error) {
 	if len(template) < StubSize+StubSuffix {
 		return nil, errors.New("invalid runtime template")
 	}
-	if 1+xorKeySize+2+len(shield)+2+len(decoy) > StubSize {
+	if 1+seedSize+2+len(shield)+2+len(decoy) > StubSize {
 		return nil, errors.New("shield or decoy is too large")
 	}
 	// locate shield stub in runtime template
@@ -71,30 +71,30 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	// build new stub
 	stub := bytes.Repeat([]byte{0x00}, StubSize)
 	stub[0] = StubMagic
-	// generate xor key
-	key := make([]byte, xorKeySize)
-	_, err = rand.Read(key)
+	// generate shuffle seed
+	seed := make([]byte, seedSize)
+	_, err = rand.Read(seed)
 	if err != nil {
 		return nil, errors.New("failed to generate key")
 	}
 	// build stub
 	off := 1
 	// write xor key
-	copy(stub[off:], key)
-	off += xorKeySize
+	copy(stub[off:], seed)
+	off += seedSize
 	// write shield size
 	size := binary.LittleEndian.AppendUint16(nil, uint16(len(shield))) // #nosec G115
 	copy(stub[off:], size)
 	off += 2
-	// write encrypted shield
-	copy(stub[off:], xor(shield, key))
+	// write shuffled shield
+	copy(stub[off:], shuffle(shield, seed))
 	off += len(shield)
 	// write decoy size
 	size = binary.LittleEndian.AppendUint16(nil, uint16(len(decoy))) // #nosec G115
 	copy(stub[off:], size)
 	off += 2
-	// write encrypted decoy
-	copy(stub[off:], xor(decoy, key))
+	// write shuffled decoy
+	copy(stub[off:], shuffle(decoy, seed))
 	off += len(decoy)
 	// append padding data
 	pad := make([]byte, StubSize-off)
@@ -107,6 +107,26 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	output := bytes.Clone(template)
 	copy(output[offset:], stub)
 	return output, nil
+}
+
+func shuffle(data, seed []byte) []byte {
+	buffer := bytes.Clone(data)
+	s := binary.LittleEndian.Uint64(seed)
+	for i := len(buffer) - 1; i > 0; i-- {
+		j := s % uint64(i+1)
+		t := buffer[i]
+		buffer[i] = buffer[j]
+		buffer[j] = t
+		s = xorShift64(s)
+	}
+	return buffer
+}
+
+func xorShift64(seed uint64) uint64 {
+	seed ^= seed << 13
+	seed ^= seed >> 7
+	seed ^= seed << 17
+	return seed
 }
 
 // Get is used to extract shield and decoy from the runtime shield stub.
@@ -125,8 +145,8 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	// skip magic
 	off := 1
 	// read xor key
-	key := stub[off : off+xorKeySize]
-	off += xorKeySize
+	key := stub[off : off+seedSize]
+	off += seedSize
 	// read shield size
 	shieldSize := int(binary.LittleEndian.Uint16(stub[off:]))
 	off += 2
@@ -134,7 +154,7 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	if off+shieldSize+2 > StubSize {
 		return nil, nil, errors.New("invalid shield size in stub")
 	}
-	// read encrypted shield
+	// read shuffled shield
 	shield = stub[off : off+shieldSize]
 	off += shieldSize
 	// read decoy size
@@ -144,21 +164,45 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	if off+decoySize > StubSize {
 		return nil, nil, errors.New("invalid decoy size in stub")
 	}
-	// read encrypted decoy
+	// read shuffled decoy
 	decoy = stub[off : off+decoySize]
-	// decrypt shield and decoy
-	return xor(shield, key), xor(decoy, key), nil
+	// unshuffle shield and decoy
+	return unshuffle(shield, key), unshuffle(decoy, key), nil
 }
 
-func xor(data, key []byte) []byte {
-	if len(data) == 0 {
-		return nil
+func unshuffle(data, seed []byte) []byte {
+	buffer := bytes.Clone(data)
+	s := binary.LittleEndian.Uint64(seed)
+	// advance to the final seed
+	for i := len(buffer) - 1; i > 0; i-- {
+		s = xorShift64(s)
 	}
-	output := make([]byte, len(data))
-	for i := 0; i < len(data); i++ {
-		output[i] = data[i] ^ key[i%len(key)]
+	for i := 1; i < len(data); i++ {
+		s = reverseXORShift64(s)
+		j := s % uint64(i+1)
+		t := buffer[i]
+		buffer[i] = buffer[j]
+		buffer[j] = t
 	}
-	return output
+	return buffer
+}
+
+func reverseXORShift64(seed uint64) uint64 {
+	// reverse seed ^= seed << 17
+	seed ^= seed << 17
+	seed ^= seed << 34
+
+	// reverse seed ^= seed >> 7
+	seed ^= seed >> 7
+	seed ^= seed >> 14
+	seed ^= seed >> 28
+	seed ^= seed >> 56
+
+	// reverse seed ^= seed << 13
+	seed ^= seed << 13
+	seed ^= seed << 26
+	seed ^= seed << 52
+	return seed
 }
 
 // ConvertSource is used to convert raw shield source.

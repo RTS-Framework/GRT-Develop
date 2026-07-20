@@ -1,8 +1,7 @@
 package metric
 
 import (
-	"errors"
-	"strings"
+	"github.com/RTS-Framework/GRT-Develop/types"
 )
 
 // Metrics contains status about runtime submodules.
@@ -55,19 +54,19 @@ type RTStatus struct {
 
 // DTStatus contains status about detector.
 type DTStatus struct {
-	IsEnabled        BOOL
-	HasDebugger      BOOL
-	HasMemoryScanner BOOL
-	InSandbox        BOOL
-	InEmulator       BOOL
-	InVirtualMachine BOOL
-	IsAccelerated    BOOL
+	IsEnabled        types.BOOL
+	HasDebugger      types.BOOL
+	HasMemoryScanner types.BOOL
+	InSandbox        types.BOOL
+	InEmulator       types.BOOL
+	InVirtualMachine types.BOOL
+	IsAccelerated    types.BOOL
 	SafeRank         int32
 }
 
 // WDStatus contains status about watchdog.
 type WDStatus struct {
-	IsEnabled BOOL
+	IsEnabled types.BOOL
 	Reserved  int32
 	NumKick   int64
 	NumNormal int64
@@ -76,7 +75,7 @@ type WDStatus struct {
 
 // SMStatus contains status about sysmon.
 type SMStatus struct {
-	IsEnabled  BOOL
+	IsEnabled  types.BOOL
 	Reserved   int32
 	NumNormal  int64
 	NumRecover int64
@@ -88,43 +87,4 @@ type SDStatus struct {
 	EntryPoint  uintptr
 	BaseAddress uintptr
 	Source      int64
-}
-
-// constant for use BOOL easily.
-const (
-	TRUE  = BOOL(1)
-	FALSE = BOOL(0)
-)
-
-// BOOL is an int32 for structure align.
-type BOOL int32
-
-// ToBool is used to convert to go bool.
-func (b BOOL) ToBool() bool {
-	return b != 0
-}
-
-func (b BOOL) String() string {
-	if b.ToBool() {
-		return "true"
-	}
-	return "false"
-}
-
-// MarshalText is used to implement TextMarshaler interface.
-func (b BOOL) MarshalText() ([]byte, error) {
-	return []byte(b.String()), nil
-}
-
-// UnmarshalText is used to implement TextUnmarshaler interface.
-func (b *BOOL) UnmarshalText(data []byte) error {
-	switch strings.ToLower(string(data)) {
-	case "true":
-		*b = BOOL(1)
-	case "false":
-		*b = BOOL(0)
-	default:
-		return errors.New("invalid BOOL value")
-	}
-	return nil
 }

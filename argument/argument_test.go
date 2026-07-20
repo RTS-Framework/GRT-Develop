@@ -39,6 +39,21 @@ func TestEncode(t *testing.T) {
 		spew.Dump(stub)
 	})
 
+	t.Run("large data", func(t *testing.T) {
+		arg0 := &Arg{
+			ID:   0,
+			Data: bytes.Repeat([]byte{0xFF}, AlgoSwitchSize),
+		}
+		stub, err := Encode(arg0)
+		require.NoError(t, err)
+
+		header := offsetFirstArg
+		expected := header + (4 + 4 + len(arg0.Data))
+		require.Len(t, stub, expected)
+
+		spew.Dump(stub)
+	})
+
 	t.Run("too many arguments", func(t *testing.T) {
 		args := make([]*Arg, MaxNumArguments+1)
 		stub, err := Encode(args...)
@@ -66,7 +81,7 @@ func TestEncode(t *testing.T) {
 		require.Nil(t, stub)
 	})
 
-	t.Run("failed to generate crypto key", func(t *testing.T) {
+	t.Run("failed to generate seed", func(t *testing.T) {
 		patch := func(b []byte) (int, error) {
 			return 0, errors.New("monkey error")
 		}
@@ -78,7 +93,7 @@ func TestEncode(t *testing.T) {
 			Data: []byte{0x12, 0x34, 0x56, 0x78},
 		}
 		stub, err := Encode(arg0)
-		require.EqualError(t, err, "failed to generate crypto key")
+		require.EqualError(t, err, "failed to generate seed")
 		require.Nil(t, stub)
 	})
 }
@@ -106,6 +121,19 @@ func TestDecode(t *testing.T) {
 		require.Equal(t, args, output)
 	})
 
+	t.Run("large data", func(t *testing.T) {
+		arg0 := &Arg{
+			ID:   0,
+			Data: bytes.Repeat([]byte{0xFF}, AlgoSwitchSize),
+		}
+		stub, err := Encode(arg0)
+		require.NoError(t, err)
+
+		output, err := Decode(stub)
+		require.NoError(t, err)
+		require.Equal(t, []*Arg{arg0}, output)
+	})
+
 	t.Run("empty argument", func(t *testing.T) {
 		stub, err := Encode()
 		require.NoError(t, err)
@@ -118,6 +146,12 @@ func TestDecode(t *testing.T) {
 	t.Run("invalid stub", func(t *testing.T) {
 		stub, err := Decode(nil)
 		require.EqualError(t, err, "invalid argument stub")
+		require.Nil(t, stub)
+	})
+
+	t.Run("invalid flag", func(t *testing.T) {
+		stub, err := Decode(make([]byte, offsetFirstArg))
+		require.EqualError(t, err, "invalid argument stub flag")
 		require.Nil(t, stub)
 	})
 
@@ -233,14 +267,14 @@ func TestDecode(t *testing.T) {
 func TestCompressRatio(t *testing.T) {
 	arg := &Arg{
 		ID:   0,
-		Data: bytes.Repeat([]byte{0x00}, 256*1024),
+		Data: bytes.Repeat([]byte{0x00}, AlgoSwitchSize-8),
 	}
 
 	for i := 0; i < 100; i++ {
 		stub, err := Encode(arg)
 		require.NoError(t, err)
 
-		buf := bytes.NewBuffer(make([]byte, 0, 256*1024))
+		buf := bytes.NewBuffer(make([]byte, 0, AlgoSwitchSize))
 		w, err := flate.NewWriter(buf, flate.BestCompression)
 		require.NoError(t, err)
 		_, err = w.Write(stub)

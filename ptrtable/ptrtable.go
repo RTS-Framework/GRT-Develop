@@ -6,18 +6,18 @@ import (
 	"errors"
 )
 
-// +------------+----------+----------+
-// | magic mark | reserved | pointers |
-// +------------+----------+----------+
-// |    0xFA    |  7 byte  | 248 byte |
-// +------------+----------+----------+
+// +------------+----------+---------+
+// | magic mark | reserved | pointer |
+// +------------+----------+---------+
+// |    0xFB    |  7 byte  | 16 byte |
+// +------------+----------+---------+
 
 const (
 	// StubMagic is the mark of pointer stub.
-	StubMagic = 0xFA
+	StubMagic = 0xFB
 
 	// StubSize is the pointer stub total size at the runtime tail.
-	StubSize = 256
+	StubSize = 1 + 7 + 16
 )
 
 // Set is used to fill the random data to pointer stub.

@@ -1,4 +1,4 @@
-package develop
+package instance
 
 import (
 	"bytes"
@@ -57,11 +57,13 @@ type Options struct {
 	// set decoy instruction to shield stub.
 	Decoy []byte `toml:"decoy" json:"decoy"`
 
+	// TODO SkipArguments
+
 	// set argument to template tail.
 	Arguments []*argument.Arg `toml:"arguments" json:"arguments"`
 }
 
-// Instantiate is used to instantiate runtime from template.
+// Instantiate is used to create runtime from template.
 func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)

@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"flag"
-	"unicode/utf16"
 )
 
 // +------------+---------+---------+---------+---------+
@@ -245,23 +244,4 @@ func Flag(opts *Options) {
 		&opts.TrackCurrentThread, "grt-tct", false,
 		"Gleam-RT: track current thread for test or debug mode",
 	)
-}
-
-// Hash is used to calculate the exe or dll name hash for options.
-func Hash(module string) uint64 {
-	hash := uint64(0xE3C817DEA9BFE921)
-	s := utf16.Encode([]rune(module))
-	for _, c := range s {
-		if c >= 'a' && c <= 'z' {
-			c -= 0x20
-		}
-		hash = ror64(hash, 7)
-		hash += uint64(c)
-		hash = ror64(hash, 3)
-	}
-	return hash
-}
-
-func ror64(value, bits uint64) uint64 {
-	return value>>bits | value<<(64-bits)
 }

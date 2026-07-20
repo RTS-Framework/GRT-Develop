@@ -8,27 +8,32 @@ import (
 	"fmt"
 )
 
-// +---------+----------+-----------+----------+--------+----------+----------+
-// |   key   | num args | args size | checksum | arg id | arg size | arg data |
-// +---------+----------+-----------+----------+--------+----------+----------+
-// | 32 byte |  uint16  |  uint32   |  uint32  | uint32 |  uint32  |   var    |
-// +---------+----------+-----------+----------+--------+----------+----------+
+// +------+---------+----------+-----------+----------+--------+----------+----------+
+// | init |   key   | num args | args size | checksum | arg id | arg size | arg data |
+// +------+---------+----------+-----------+----------+--------+----------+----------+
+// | bool | 32 byte |  uint16  |  uint32   |  uint32  | uint32 |  uint32  |   var    |
+// +------+---------+----------+-----------+----------+--------+----------+----------+
 
-// MaxNumArguments is the maximum number of the arguments.
-const MaxNumArguments = 1024
+const (
+	// MaxNumArguments is the maximum number of the arguments.
+	MaxNumArguments = 1024
+
+	// AlgoSwitchSize is a threshold for selecting the encryption algorithm.
+	AlgoSwitchSize = 512
+)
 
 const (
 	cryptoKeySize  = 32
-	offsetNumArgs  = 32
-	offsetArgsSize = 32 + 2
-	offsetChecksum = 32 + 2 + 4
-	offsetFirstArg = 32 + 2 + 4 + 4
+	offsetNumArgs  = 1 + 32
+	offsetArgsSize = 1 + 32 + 2
+	offsetChecksum = 1 + 32 + 2 + 4
+	offsetFirstArg = 1 + 32 + 2 + 4 + 4
 )
 
 // Arg contains the id and data about argument.
 type Arg struct {
-	ID   uint32
-	Data []byte
+	ID   uint32 `toml:"id"   json:"id"`
+	Data []byte `toml:"data" json:"data"`
 }
 
 // Encode is used to encode and encrypt arguments to stub.
@@ -36,15 +41,18 @@ func Encode(args ...*Arg) ([]byte, error) {
 	if len(args) > MaxNumArguments {
 		return nil, errors.New("too many arguments")
 	}
-	key := make([]byte, cryptoKeySize)
-	_, err := rand.Read(key)
+	// generate seed for init flag and key
+	seed := make([]byte, 1+cryptoKeySize)
+	_, err := rand.Read(seed)
 	if err != nil {
-		return nil, errors.New("failed to generate crypto key")
+		return nil, errors.New("failed to generate seed")
 	}
-	// write crypto key
 	buffer := bytes.NewBuffer(nil)
 	buffer.Grow(offsetFirstArg)
-	buffer.Write(key)
+	// write init flag
+	buffer.WriteByte(seed[0] | 1)
+	// write crypto key
+	buffer.Write(seed[1:])
 	// write the number of arguments
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint16(buf, uint16(len(args))) // #nosec G115
@@ -95,6 +103,9 @@ func Decode(stub []byte) ([]*Arg, error) {
 	if len(stub) < offsetFirstArg {
 		return nil, errors.New("invalid argument stub")
 	}
+	if stub[0] == 0 {
+		return nil, errors.New("invalid argument stub flag")
+	}
 	// calculate checksum
 	checksum := calculateChecksum(stub)
 	expected := binary.LittleEndian.Uint32(stub[offsetChecksum:])
@@ -139,6 +150,22 @@ func Decode(stub []byte) ([]*Arg, error) {
 	return args, nil
 }
 
+func calculateChecksum(stub []byte) uint32 {
+	data := stub[offsetFirstArg:]
+	var crc uint32 = 0xFFFFFFFF
+	for i := 0; i < len(data); i++ {
+		crc ^= uint32(data[i])
+		for j := 0; j < 8; j++ {
+			if crc&1 != 0 {
+				crc = (crc >> 1) ^ 0xEDB88320
+			} else {
+				crc >>= 1
+			}
+		}
+	}
+	return crc ^ 0xFFFFFFFF
+}
+
 func xorHeader(stub []byte) {
 	data := stub[offsetNumArgs:offsetChecksum]
 	key := stub[:cryptoKeySize]
@@ -150,6 +177,11 @@ func xorHeader(stub []byte) {
 func encryptStub(stub []byte) {
 	data := stub[offsetFirstArg:]
 	key := stub[:cryptoKeySize]
+	if len(data) > AlgoSwitchSize {
+		seed := binary.LittleEndian.Uint64(key[:8])
+		obfuscateStub(data, seed)
+		return
+	}
 	last := binary.LittleEndian.Uint32(key[:4])
 	ctr := binary.LittleEndian.Uint32(key[4:])
 	keyIdx := last % cryptoKeySize
@@ -174,6 +206,11 @@ func encryptStub(stub []byte) {
 func decryptStub(stub []byte) {
 	data := stub[offsetFirstArg:]
 	key := stub[:cryptoKeySize]
+	if len(data) > AlgoSwitchSize {
+		seed := binary.LittleEndian.Uint64(key[:8])
+		illuminateStub(data, seed)
+		return
+	}
 	last := binary.LittleEndian.Uint32(key[:4])
 	ctr := binary.LittleEndian.Uint32(key[4:])
 	keyIdx := last % cryptoKeySize
@@ -195,20 +232,93 @@ func decryptStub(stub []byte) {
 	}
 }
 
-func calculateChecksum(stub []byte) uint32 {
-	data := stub[offsetFirstArg:]
-	var crc uint32 = 0xFFFFFFFF
-	for i := 0; i < len(data); i++ {
-		crc ^= uint32(data[i])
-		for j := 0; j < 8; j++ {
-			if crc&1 != 0 {
-				crc = (crc >> 1) ^ 0xEDB88320
-			} else {
-				crc >>= 1
-			}
-		}
+func obfuscateStub(stub []byte, seed uint64) {
+	sbox := initSBox(seed)
+	for i := 0; i < len(stub); i++ {
+		stub[i] = sbox[stub[i]]
 	}
-	return crc ^ 0xFFFFFFFF
+	shuffle(stub, seed)
+}
+
+func illuminateStub(stub []byte, seed uint64) {
+	sbox := initSBox(seed)
+	sbox = reverseSBox(sbox)
+	unshuffle(stub, seed)
+	for i := 0; i < len(stub); i++ {
+		stub[i] = sbox[stub[i]]
+	}
+}
+
+func initSBox(seed uint64) [256]byte {
+	var sbox [256]byte
+	for i := 0; i < 256; i++ {
+		sbox[i] = byte(i)
+	}
+	for i := len(sbox) - 1; i > 0; i-- {
+		j := seed % uint64(i+1)
+		t := sbox[i]
+		sbox[i] = sbox[j]
+		sbox[j] = t
+		seed = xorShift64(seed)
+	}
+	return sbox
+}
+
+func reverseSBox(sbox [256]byte) [256]byte {
+	var r [256]byte
+	for i := 0; i < 256; i++ {
+		r[sbox[i]] = byte(i)
+	}
+	return r
+}
+
+func shuffle(data []byte, seed uint64) {
+	for i := len(data) - 1; i > 0; i-- {
+		j := seed % uint64(i+1)
+		t := data[i]
+		data[i] = data[j]
+		data[j] = t
+		seed = xorShift64(seed)
+	}
+}
+
+func unshuffle(data []byte, seed uint64) {
+	// advance to the final seed
+	for i := len(data) - 1; i > 0; i-- {
+		seed = xorShift64(seed)
+	}
+	for i := 1; i < len(data); i++ {
+		seed = reverseXORShift64(seed)
+		j := seed % uint64(i+1)
+		t := data[i]
+		data[i] = data[j]
+		data[j] = t
+	}
+}
+
+func reverseXORShift64(seed uint64) uint64 {
+	// reverse seed ^= seed << 17
+	seed ^= seed << 17
+	seed ^= seed << 34
+
+	// reverse seed ^= seed >> 7
+	seed ^= seed >> 7
+	seed ^= seed >> 14
+	seed ^= seed >> 28
+	seed ^= seed >> 56
+
+	// reverse seed ^= seed << 13
+	seed ^= seed << 13
+	seed ^= seed << 26
+	seed ^= seed << 52
+	return seed
+}
+
+func xorShift64(seed uint64) uint64 {
+	seed ^= seed << 13
+	seed ^= seed >> 7
+	seed ^= seed << 17
+	return seed
 }
 
 func xorShift32(seed uint32) uint32 {

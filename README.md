@@ -1,25 +1,25 @@
 # GRT-Develop
 A package for deep customization of Gleam-RT.
 
-## Create Instance
+## Instantiate
 ```go
 package main
 
 import (
     "fmt"
     "os"
-    
-    "github.com/RTS-Framework/GRT-Develop"
+
     "github.com/RTS-Framework/GRT-Develop/argument"
+    "github.com/RTS-Framework/GRT-Develop/instance"
 )
 
 func main() {
     template, err := os.ReadFile("Gleam-RT.bin")
     checkError(err)
     
-    opts := develop.Options{
+    opts := instance.Options{
         ImagePinningName:    "test.exe",
-        ShieldModuleName:    "test.dll",
+        ShieldModuleName:    "module.dll",
         ShieldEntryPoint:    0x1234,
         ShieldMemAddress:    0,
         EnableSecurityMode:  false,
@@ -38,10 +38,10 @@ func main() {
             {ID: 2, Data: []byte("test2")},
         },
     }
-    instance, err := develop.Instantiate(template, &opts)
+    inst, err := instance.Instantiate(template, &opts)
     checkError(err)
     
-    err = os.WriteFile("instance.bin", instance, 0600)
+    err = os.WriteFile("instance.bin", inst, 0600)
     checkError(err)
 }
 

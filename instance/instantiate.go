@@ -2,8 +2,10 @@ package instance
 
 import (
 	"bytes"
+	"crypto/rand"
 
 	"github.com/RTS-Framework/GRT-Develop/argument"
+	"github.com/RTS-Framework/GRT-Develop/hashmod"
 	"github.com/RTS-Framework/GRT-Develop/option"
 	"github.com/RTS-Framework/GRT-Develop/ptrtable"
 	"github.com/RTS-Framework/GRT-Develop/shield"
@@ -51,19 +53,23 @@ type Options struct {
 	// it maybe improved the single thread model.
 	TrackCurrentThread bool `toml:"track_current_thread" json:"track_current_thread"`
 
-	// set shield instruction to shield stub.
+	// SkipArguments is used to skip encode arguments for pipeline.
+	SkipArguments bool `toml:"skip_arguments" json:"skip_arguments"`
+
+	// EraseMagic is used to erase stub magic.
+	EraseMagic bool `toml:"erase_magic" json:"erase_magic"`
+
+	// set new shield instruction to shield stub.
 	Shield []byte `toml:"shield" json:"shield"`
 
-	// set decoy instruction to shield stub.
+	// set new decoy instruction to shield stub.
 	Decoy []byte `toml:"decoy" json:"decoy"`
 
-	// TODO SkipArguments
-
-	// set argument to template tail.
+	// encode arguments to template tail.
 	Arguments []*argument.Arg `toml:"arguments" json:"arguments"`
 }
 
-// Instantiate is used to create runtime from template.
+// Instantiate is used to create runtime instance from template.
 func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if opts == nil {
 		opts = new(Options)
@@ -76,7 +82,7 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// build option
+	// build and set option
 	opt := option.Options{
 		ImagePinningHash:    hashMod(opts.ImagePinningName),
 		ShieldModuleHash:    hashMod(opts.ShieldModuleName),
@@ -94,14 +100,28 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	stub, err := argument.Encode(opts.Arguments...)
-	if err != nil {
-		return nil, err
+	if opts.EraseMagic {
+		buf := make([]byte, 4)
+		_, _ = rand.Read(buf)
+		idx := len(template)
+		for i, off := range []int{
+			option.StubSize,
+			ptrtable.StubSize,
+			shield.StubSize,
+		} {
+			idx -= off
+			template[idx] = buf[i]
+		}
 	}
 	instance := bytes.NewBuffer(nil)
-	instance.Grow(len(template) + len(stub))
 	instance.Write(template)
-	instance.Write(stub)
+	if !opts.SkipArguments {
+		stub, err := argument.Encode(opts.Arguments...)
+		if err != nil {
+			return nil, err
+		}
+		instance.Write(stub)
+	}
 	return instance.Bytes(), nil
 }
 
@@ -113,5 +133,5 @@ func hashMod(module string) uint64 {
 	if module == MainModule {
 		return 0x0001
 	}
-	return option.Hash(module)
+	return hashmod.Hash(module)
 }

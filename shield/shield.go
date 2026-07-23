@@ -93,8 +93,8 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	size = binary.LittleEndian.AppendUint16(nil, uint16(len(decoy))) // #nosec G115
 	copy(stub[off:], size)
 	off += 2
-	// write shuffled decoy
-	copy(stub[off:], shuffle(decoy, seed))
+	// write decoy
+	copy(stub[off:], decoy)
 	off += len(decoy)
 	// append padding data
 	pad := make([]byte, StubSize-off)
@@ -107,26 +107,6 @@ func Set(template, shield, decoy []byte) ([]byte, error) {
 	output := bytes.Clone(template)
 	copy(output[offset:], stub)
 	return output, nil
-}
-
-func shuffle(data, seed []byte) []byte {
-	buffer := bytes.Clone(data)
-	s := binary.LittleEndian.Uint64(seed)
-	for i := len(buffer) - 1; i > 0; i-- {
-		j := s % uint64(i+1)
-		t := buffer[i]
-		buffer[i] = buffer[j]
-		buffer[j] = t
-		s = xorShift64(s)
-	}
-	return buffer
-}
-
-func xorShift64(seed uint64) uint64 {
-	seed ^= seed << 13
-	seed ^= seed >> 7
-	seed ^= seed << 17
-	return seed
 }
 
 // Get is used to extract shield and decoy from the runtime shield stub.
@@ -166,8 +146,21 @@ func Get(instance []byte, offset int) (shield []byte, decoy []byte, err error) {
 	}
 	// read shuffled decoy
 	decoy = stub[off : off+decoySize]
-	// unshuffle shield and decoy
-	return unshuffle(shield, seed), unshuffle(decoy, seed), nil
+	// unshuffle shield
+	return unshuffle(shield, seed), bytes.Clone(decoy), nil
+}
+
+func shuffle(data, seed []byte) []byte {
+	buffer := bytes.Clone(data)
+	s := binary.LittleEndian.Uint64(seed)
+	for i := len(buffer) - 1; i > 0; i-- {
+		j := s % uint64(i+1)
+		t := buffer[i]
+		buffer[i] = buffer[j]
+		buffer[j] = t
+		s = xorShift64(s)
+	}
+	return buffer
 }
 
 func unshuffle(data, seed []byte) []byte {
@@ -185,6 +178,13 @@ func unshuffle(data, seed []byte) []byte {
 		buffer[j] = t
 	}
 	return buffer
+}
+
+func xorShift64(seed uint64) uint64 {
+	seed ^= seed << 13
+	seed ^= seed >> 7
+	seed ^= seed << 17
+	return seed
 }
 
 func reverseXORShift64(seed uint64) uint64 {

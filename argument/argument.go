@@ -23,11 +23,12 @@ const (
 )
 
 const (
-	cryptoKeySize  = 32
-	offsetNumArgs  = 1 + 32
-	offsetArgsSize = 1 + 32 + 2
-	offsetChecksum = 1 + 32 + 2 + 4
-	offsetFirstArg = 1 + 32 + 2 + 4 + 4
+	cryptoKeySize   = 32
+	offsetCryptoKey = 1
+	offsetNumArgs   = 1 + 32
+	offsetArgsSize  = 1 + 32 + 2
+	offsetChecksum  = 1 + 32 + 2 + 4
+	offsetFirstArg  = 1 + 32 + 2 + 4 + 4
 )
 
 // Arg contains the id and data about argument.
@@ -168,7 +169,7 @@ func calculateChecksum(stub []byte) uint32 {
 
 func xorHeader(stub []byte) {
 	data := stub[offsetNumArgs:offsetChecksum]
-	key := stub[:cryptoKeySize]
+	key := stub[offsetCryptoKey : offsetCryptoKey+cryptoKeySize]
 	for i := 0; i < len(data); i++ {
 		data[i] = data[i] ^ key[i%len(key)]
 	}
@@ -176,7 +177,7 @@ func xorHeader(stub []byte) {
 
 func encryptStub(stub []byte) {
 	data := stub[offsetFirstArg:]
-	key := stub[:cryptoKeySize]
+	key := stub[offsetCryptoKey : offsetCryptoKey+cryptoKeySize]
 	if len(data) > AlgoSwitchSize {
 		seed := binary.LittleEndian.Uint64(key[:8])
 		obfuscateStub(data, seed)
@@ -205,7 +206,7 @@ func encryptStub(stub []byte) {
 
 func decryptStub(stub []byte) {
 	data := stub[offsetFirstArg:]
-	key := stub[:cryptoKeySize]
+	key := stub[offsetCryptoKey : offsetCryptoKey+cryptoKeySize]
 	if len(data) > AlgoSwitchSize {
 		seed := binary.LittleEndian.Uint64(key[:8])
 		illuminateStub(data, seed)

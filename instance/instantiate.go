@@ -101,16 +101,17 @@ func Instantiate(template []byte, opts *Options) ([]byte, error) {
 		return nil, err
 	}
 	if opts.EraseMagic {
-		buf := make([]byte, 4)
-		_, _ = rand.Read(buf)
-		idx := len(template)
-		for i, off := range []int{
+		list := []int{
 			option.StubSize,
 			ptrtable.StubSize,
 			shield.StubSize,
-		} {
+		}
+		pad := make([]byte, len(list))
+		_, _ = rand.Read(pad)
+		idx := len(template)
+		for i, off := range list {
 			idx -= off
-			template[idx] = buf[i]
+			template[idx] = pad[i]
 		}
 	}
 	instance := bytes.NewBuffer(nil)
